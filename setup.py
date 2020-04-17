@@ -1,10 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
   name='cytopath',
   version='0.1.3',
   description='Trajectory inference for single cell RNA seq. data using transition probabiloities derived from RNA velocity of single cells.',
   license='BSD 3-Clause License',
+  packages=find_packages(),
   author = 'Revant Gupta',                   # Type in your name
   author_email = 'revant.gupta.93@gmail.com',      # Type in your E-Mail
   url = 'https://github.com/aron0093/cytopath',   # Provide either the link to your github or to your website
