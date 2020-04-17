@@ -2,13 +2,13 @@ from setuptools import setup
 
 setup(
   name='cytopath',
-  version='0.1',
+  version='0.1.1',
   description='Trajectory inference for single cell RNA seq. data using transition probabiloities derived from RNA velocity of single cells.',
   license='BSD 3-Clause License',
   author = 'Revant Gupta',                   # Type in your name
   author_email = 'revant.gupta.93@gmail.com',      # Type in your E-Mail
   url = 'https://github.com/aron0093/cytopath',   # Provide either the link to your github or to your website
-  download_url = 'https://github.com/aron0093/cytopath/archive/v_01.tar.gz',    # I explain this later on
+  download_url = 'https://github.com/aron0093/cytopath/archive/v_01_01.tar.gz',    # I explain this later on
   keywords = ['Trajectory Inference', 'single-cell RNA sequencing', 'RNA velocity'],   # Keywords that define your package best
   install_requires=[
           'numpy',
