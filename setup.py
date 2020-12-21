@@ -1,10 +1,11 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
   name='cytopath',
   version='0.1.4',
   description='Simulation based inference of differentiation trajectories from RNA velocity fields.',
   license='BSD 3-Clause License',
+  packages=find_packages(),
   author = 'Revant Gupta',
   author_email = 'revant.gupta.93@gmail.com',
   url = 'https://github.com/aron0093/cytopath',
