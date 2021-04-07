@@ -2,7 +2,7 @@ from .trajectory_estimation.sample_clustering import sample_clustering
 from .trajectory_estimation.cyto_path import cytopath
 from .trajectory_estimation.cytopath_merger import cytopath_merger
 
-def trajectories(data, return_subtrajectories=True, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.1,
+def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.1,
                  surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=1, method = 'kmeans', num_cores=1, copy=False):
     
     adata = data.copy() if copy else data
@@ -10,7 +10,7 @@ def trajectories(data, return_subtrajectories=True, smoothing=False, alignment_c
     if 'X_pca' not in adata.obsm.keys(): raise ValueError('Compute PCA using cytopath.scvelo.pp.pca')
 
     # Clustering of cell sequences to obtain trajectories
-    sample_clustering(adata, basis=basis, return_subtrajectories=return_subtrajectories, smoothing=smoothing, 
+    sample_clustering(adata, basis=basis, smoothing=smoothing, 
                           cluster_num=cluster_num, method=method)
 
     # Align cells along trajectories
