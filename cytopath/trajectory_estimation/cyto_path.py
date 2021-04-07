@@ -241,7 +241,7 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
                  all_scores[i][j] = np.delete(all_scores[i][j], np.where(all_scores[i][j]<=cutoff_score))
     return directional_neighborhood_sequence, all_scores
     
-def time_step_cells(adata, directional_neighborhood_sequence, map_state):
+def time_step_cells(adata, directional_neighborhood_sequence, all_scores, map_state):
     """Calculates the average time step for each cell.
     
     Arguments
@@ -252,25 +252,31 @@ def time_step_cells(adata, directional_neighborhood_sequence, map_state):
         Which projection to use for the data.
     directional_neighborhood_sequence: 
         List of the cells along the trajectory after the cutoff
+    cell_score: 
+        Alignment scores of cells along the trajectory after the cutoff
     
     Returns
     -------
     Returns list of vectors, where for each cell index the average step is denoted.
     """
 
+    max_score_counter = np.zeros((len(directional_neighborhood_sequence), len(map_state))) 
     step_counter = np.zeros((len(directional_neighborhood_sequence), len(map_state)))
     occurance_counter = np.zeros((len(directional_neighborhood_sequence), len(map_state)))
     for i in range(len(directional_neighborhood_sequence)):
         for j in range(len(directional_neighborhood_sequence[i])):
-            step_counter[i,directional_neighborhood_sequence[i][j]]+=j    
-            occurance_counter[i,directional_neighborhood_sequence[i][j]]+=1  
-    average_step = np.divide(step_counter, occurance_counter, out=np.zeros_like(step_counter), where=occurance_counter!=0)
-    average_step[occurance_counter==0] = np.NaN
-    return average_step
+            for k in range(len(directional_neighborhood_sequence[i][j])):
+                if max_score_counter[i, directional_neighborhood_sequence[i][j][k]] < all_scores[i][j][k]:
+                    max_score_counter[i, directional_neighborhood_sequence[i][j][k]] = all_scores[i][j][k]
+                    step_counter[i,directional_neighborhood_sequence[i][j][k]]=j  
+            #occurance_counter[i,directional_neighborhood_sequence[i][j]]+=1  
+    #average_step = np.divide(step_counter, occurance_counter, out=np.zeros_like(step_counter), where=occurance_counter!=0)
+    #average_step[occurance_counter==0] = np.NaN
+    return step_counter
     
 def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.25, n_neighbors='auto', cut_off=0.0, num_cores=1):
     """Calculates the average time step for each cell.
-    
+
     Arguments
     ---------
     adata: :class:`~anndata.AnnData`
@@ -312,9 +318,9 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
         cell_score.append(all_scores)
 
         print('Computing step based pseudotime in trajectories for end point  ' + end_point_cluster +' (i.e. cells neighborhood)')
-        step_ordering_trajectory.append(time_step_cells(adata, directional_neighborhood_sequence=directional_neighborhood_sequence, map_state=map_state))
+        step_ordering_trajectory.append(time_step_cells(adata, directional_neighborhood_sequence=directional_neighborhood_sequence, all_scores=all_scores, map_state=map_state))
         cells_trajectory.append(directional_neighborhood_sequence)
-    
+
     cells_along_trajectories = []
     end_point_clusters = list(adata.uns['trajectories']["trajectories_coordinates"].keys())
     for i in range(len(cells_trajectory)):
@@ -322,7 +328,7 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
             for k in range(len(cells_trajectory[i][j])):
                 for l in range(len(cells_trajectory[i][j][k])):
                     cells_along_trajectories.append((end_point_clusters[i], j, k, cells_trajectory[i][j][k][l], cell_score[i][j][k][l]))
-       
+
     adata.uns['trajectories']["cells_along_trajectories"] = np.concatenate(step_ordering_trajectory)
     adata.uns['trajectories']["cells_along_trajectories_each_step"] = np.rec.fromrecords(cells_along_trajectories, 
                                                                                          dtype=[('End point', 'U32'), ('Trajectory', int), 
