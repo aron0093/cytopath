@@ -2,19 +2,19 @@ import numpy as np
 from scipy import spatial
 import matplotlib.pyplot as plt
       
-def pl_cytopath_alignment(adata, basis="umap", folder="", key="cells_along_trajectories_each_step", figsize=(12,3), size = 10, smoothing=False):
+def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size = 10, smoothing=False):
     
     map_state = adata.obsm['X_'+basis]
     av_allign_score_glob=[]
     std_allign_score_glob=[]
     
-    step_counter = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)))
+    step_counter = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)), dtype=float)
     occurance_counter = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)))
-    alignment_aggregator = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)))
+    alignment_aggregator = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)), dtype=float)
     
     counter=0
     for end_point_cluster in adata.uns['run_info']["end_point_clusters"]:
-        trajectories = adata.uns['trajectories'][key][np.where(adata.uns['trajectories'][key]["End point"]==end_point_cluster)[0]]
+        trajectories = adata.uns['trajectories']["cells_along_trajectories_each_step"][np.where(adata.uns['trajectories']["cells_along_trajectories_each_step"]["End point"]==end_point_cluster)[0]]
 
         for i in range(adata.uns['run_info']['trajectory_count'][end_point_cluster]):
             av_trajectories = trajectories[np.where(trajectories["Trajectory"]==i)[0]]
@@ -22,22 +22,26 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", key="cells_along_traje
             for l in range(len(np.unique(av_trajectories["Step"]))):
                 av_steps = av_trajectories[np.where(av_trajectories["Step"]==l)[0]]
 
-                step_counter[counter, av_steps["Cell"].astype(int)] += l
-                alignment_aggregator[counter, av_steps["Cell"].astype(int)] += av_steps["Allignment Score"] 
+                for k in range(len(av_steps)):
+                    if alignment_aggregator[counter, av_steps[k]["Cell"]] < av_steps[k]["Allignment Score"]:
+                        alignment_aggregator[counter, av_steps[k]["Cell"]] = av_steps[k]["Allignment Score"]
+                        step_counter[counter, av_steps[k]["Cell"]] = l
                 occurance_counter[counter, av_steps["Cell"].astype(int)] += 1
             
             counter+=1
     
-    average_step=np.divide(step_counter, occurance_counter, out=np.zeros_like(step_counter), where=occurance_counter!=0)
+    #average_step=np.divide(step_counter, occurance_counter, out=np.zeros_like(step_counter), where=occurance_counter!=0)
+    average_step = step_counter
     average_step[occurance_counter==0]=np.NaN
-
-    average_allignment_score=np.divide(alignment_aggregator, occurance_counter, out=np.zeros_like(alignment_aggregator), where=occurance_counter!=0)
+    
+    #average_allignment_score=np.divide(alignment_aggregator, occurance_counter, out=np.zeros_like(alignment_aggregator), where=occurance_counter!=0)
+    average_allignment_score = alignment_aggregator
     average_allignment_score[occurance_counter==0]=np.NaN
 
     sequence=0
    
     for end_point_cluster in adata.uns['run_info']["end_point_clusters"]:
-        trajectories = adata.uns['trajectories'][key][np.where(adata.uns['trajectories'][key]["End point"]==end_point_cluster)[0]]
+        trajectories = adata.uns['trajectories']["cells_along_trajectories_each_step"][np.where(adata.uns['trajectories']["cells_along_trajectories_each_step"]["End point"]==end_point_cluster)[0]]
         for i in range(adata.uns['run_info']['trajectory_count'][end_point_cluster]):
 
             av_trajectories=trajectories[np.where(trajectories["Trajectory"]==i)[0]]
@@ -50,7 +54,7 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", key="cells_along_traje
             # TODO: Separate per step average alignment score calculation from plotting
 
             # Plotting
-            path = folder+key+"_end_point_"+end_point_cluster+"_cytopath_"+str(i)+\
+            path = folder+"_end_point_"+end_point_cluster+"_cytopath_"+str(i)+\
                  "occurance"+str(adata.uns['run_info']["trajectories_sample_counts"][end_point_cluster][i])+".png"
 
             fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=figsize) 
