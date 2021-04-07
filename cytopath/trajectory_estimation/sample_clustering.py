@@ -48,7 +48,7 @@ def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
     return all_chains
 
 # First of two stage clustering of markov chains 
-def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap", n_clusters=None, method=None):
+def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
 
    map_state = adata.obsm['X_'+basis]
    all_chains=sequence_coordinates
@@ -69,19 +69,9 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap", n_
 
    # Perform clustering using hausdorff distance
    print('Clustering using hausdorff distances')
-   if n_clusters==None:
-       cluster_labels = AffinityPropagation(affinity="precomputed").fit_predict(affinity)
-       clusters=np.unique(cluster_labels)
 
-   else:
-       if method=='dbscan':
-           cluster_labels = DBSCAN(metric='precomputed').fit_predict(distances)
-           #cluster_labels=cluster_labels[np.where(cluster_labels!=-1)]
-           clusters=np.unique(cluster_labels)
-
-       elif method=='kmeans':
-           cluster_labels = KMeans(n_clusters=n_clusters,precompute_distances=True).fit_predict(distances)
-           clusters=np.unique(cluster_labels)
+   cluster_labels = AffinityPropagation(affinity="precomputed").fit_predict(affinity)
+   clusters=np.unique(cluster_labels)
 
     # Pairwise alignment of chains within stage 1 clusters using DTW
 
@@ -129,7 +119,7 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap", n_
    return cluster_chains, cluster_strength, cluster_labels
 
 # Second clustering of aligned stage 1 clusters that output trajectories
-def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cluster_labels_1, smoothing=False):
+def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cluster_labels_1, n_clusters=None, method=None, smoothing=False):
         
     average_cl_d=np.zeros((len(cluster_chains), len(cluster_chains)))
 
@@ -144,8 +134,14 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
     average_cl_d_affinity=1-average_cl_d
 
     print('Clustering using hausdorff distances')
-    cluster_labels = AffinityPropagation(affinity="precomputed", convergence_iter=100).fit_predict(average_cl_d_affinity)
-    clusters = np.unique(cluster_labels)
+    if n_clusters==None:
+        cluster_labels = AffinityPropagation(affinity="precomputed", convergence_iter=100).fit_predict(average_cl_d_affinity)
+        clusters = np.unique(cluster_labels)
+    else:
+        if method=='kmeans':
+            cluster_labels = KMeans(n_clusters=n_clusters,precompute_distances=True).fit_predict(average_cl_d_affinity)
+            clusters=np.unique(cluster_labels)
+        
     all_trajectories_labels = np.zeros((len(cluster_labels_1)))
     
     for i in range(len(cluster_labels)):
@@ -208,7 +204,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
 
     return final_cluster, final_cluster_strength
     
-def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, return_subtrajectories=False, method='kmeans'):
+def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, method='kmeans'):
     """Clusters samples for each terminal region and estimates trajectories.
     
     Arguments
@@ -221,8 +217,6 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, re
         Whether or not to smooth over the trajectories.
     cluster_num:  list (default:None)
         Number of trajectories (clusters) to be expected for each terminal region.
-    return_subtrajectories: boolean (default:False)
-        Whether to save the clusters from the (pre-)clustering step.
     method=str (default:'kmeans'):
         Which clustering method to use.
     Returns
@@ -246,36 +240,44 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, re
     final_trajectories = []
     final_cluster_count = []
 
-    if return_subtrajectories==True:
-        subtrajectory_dict={}
+
+    subtrajectory_dict={}
 
     for i in range(len(end_clusters)):
         trajectories = end_point_trajectories(adata, end_clusters, sel_end_clusters, end_points, cluster=i)
         if trajectories.shape[0] > 0:
             sequence_coordinates = coordinate_assigner(adata, trajectories, basis=basis)  
-            if return_subtrajectories==True:
-                subtrajectory_dict[end_clusters[i]] = {}
-                subtrajectory_dict[end_clusters[i]]['trajectory_samples'] = trajectories
+            subtrajectory_dict[end_clusters[i]] = {}
+            subtrajectory_dict[end_clusters[i]]['trajectory_samples'] = trajectories
 
         # TODO: Allow different number of trajectories per terminal region
             if cluster_num!=None:
                 print("Clustering and aligning samples for end point " + str(end_clusters[i]))
-                final_trajectory, final_cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
-                                                                                         basis=basis, all_seq_cluster=trajectories,
-                                                                                         n_clusters=cluster_num, method=method)
+                cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
+                                                                                         basis=basis, all_seq_cluster=trajectories)
+                
+                print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
+                final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
+                                                                            cluster_labels_1=cluster_labels, n_clusters=cluster_num, method=method,
+                                                                            smoothing=smoothing)
             else:
+
                 print("Stage 1 clustering done. Alinging clusters for end point " + str(end_clusters[i]))
                 cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
                                                                                  basis=basis, all_seq_cluster=trajectories)
+                
+                
                 print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
                 final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
-                                                                            cluster_labels_1=cluster_labels, smoothing=smoothing)
+                                                                            cluster_labels_1=cluster_labels, n_clusters=None, method=None,
+                                                                            smoothing=smoothing)
                 
-            if return_subtrajectories==True:
-                subtrajectory_dict[end_clusters[i]]['subtrajectory_labels'] = cluster_labels
 
-            # Discard trajectories that contain less than 5 % of all samples
-            indexes = np.where(final_cluster_strength>(0.05*np.sum(final_cluster_strength)))[0]
+            subtrajectory_dict[end_clusters[i]]['subtrajectory_labels'] = cluster_labels
+            subtrajectory_dict[end_clusters[i]]['subtrajectory_chains'] = cluster_chains
+
+            # Discard trajectories that contain less than 10 % of all samples
+            indexes = np.where(final_cluster_strength>(0.1*np.sum(final_cluster_strength)))[0]
 
             final_trajectories.append(np.array(final_trajectory)[indexes])
             final_cluster_count.append(np.array(final_cluster_strength)[indexes])      
@@ -296,8 +298,8 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, re
             for k in range(len(final_trajectories[i][j])):
                 trajectory_dict[end_clusters[i]]['trajectory_'+str(j)+'_coordinates'].append(final_trajectories[i][j][k])
                 
-    if return_subtrajectories==True:
-        adata.uns["subtrajectories"] = subtrajectory_dict
+
+    adata.uns["subtrajectories"] = subtrajectory_dict
     adata.uns['trajectories'] = {}
     adata.uns['trajectories']["trajectories_coordinates"] = trajectory_dict
     adata.uns['run_info']["trajectories_sample_counts"] = trajectory_sample_count_dict
