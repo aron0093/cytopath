@@ -24,7 +24,7 @@ def matrix_prep(trans_matrix):
             trans_matrix_indice_zeros[i, j] = trans_matrix_indices[i][j]
             trans_matrix_probabilites_zeros[i, j] = trans_matrix_probabilites[i][j]
     
-    # FIXME: Ensure that cummulative sum reaches 1 accurately (rounding to 3 decimals ensures that this almost never happens)
+    # FIXME: Ensure that cummulative sum reaches 1 precisely (rounding to 3 decimals ensures that this almost never happens)
     return trans_matrix_indice_zeros, np.round(trans_matrix_probabilites_zeros, decimals=3)
 
 # Markov sim function: sample according to the probabilities in the transition matrix.
@@ -49,7 +49,7 @@ def markov_sim(j, sim_number, max_steps, root_cells, clusters, trans_matrix, tra
     return currState, np.sum(-np.log(prob_state), axis=1), clust_state
 
 def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=200, traj_number=1000, sim_number=2000,
-                end_point_probability=0.95, root_cell_probability=0.95, end_points=[], root_cells=[], end_clusters = [], root_clusters=[], min_clusters=2,
+                end_point_probability=0.95, root_cell_probability=0.95, end_points=[], root_cells=[], end_clusters = [], root_clusters=[], min_clusters=3,
                 normalize=False, unique=True, num_cores=1, copy=False):
     
     """Markov sampling of cell sequences starting from defined root cells to defined terminal regions based on a cell-cell transition probability matrix.
@@ -63,21 +63,23 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
     max_steps: `integer` (default: 200)
         Maximum number steps of simulation.
     traj_number: `integer`(default: 1000)
-        Intial number of samples generated for each terminal region.
-    sim_number: `integer`(default: 2000)
         Minimum number of samples generated for each terminal region.
+    sim_number: `integer`(default: 2000)
+        Initial number of samples generated for each terminal region.
     end_point_probability: 'float' (default:0.95)
         End point probability threshold at which a cell is considered to be a terminal state for samples.
     root_state_probability: 'float' (default:0.95)
         Start state probability threshold at which a cell is considered to be an origin for samples.
-    end_points: `integer` (default: [])
+    end_points: `list` (default: [])
         Numerical indices of the cells considered to be end points for manual annotation. Precendence over end_point_probability and end_clusters.
-    root_cells: `integer` (default: [])
+    root_cells: `list` (default: [])
         Numerical indices of the cells considered to be root states for manual annotation. Precendence over root_state_probability and root_clusters.
-    end_clusters: `integer` (default: [])
+    end_clusters: `list` (default: [])
         Cluster IDs to be considered end points. Precendence over end_point_probability.
-    root_clusters: `integer` (default: [])
+    root_clusters: `list` (default: [])
         Cluster IDs to be considered root states. Precendence over root_state_probability.
+    min_clusters: `integer` (default:3)
+        Minium number of clusters covered by each simulation. (cluster_key)
     normalize: 'Boolean' (default: False)
         Toggle row sum normalization.
     unique: 'Boolean' (default:True)
