@@ -162,7 +162,7 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
     if len(root_cells) == 0:
         if len(root_clusters) == 0:
             try:
-                root_cells = np.asarray(np.where(np.asarray(adata.obs["root_cells"]) > root_cell_probability))[0]
+                root_cells = np.asarray(np.where(np.asarray(adata.obs["root_cells"]) >= root_cell_probability))[0]
             except:
                 raise ValueError('Root cells must be provided in adata.obs["root_cells"]. Run cytopath.terminal_states')
         else:
@@ -173,7 +173,7 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
     if len(end_points) == 0:
         if len(end_clusters) == 0:
             try:
-                end_points = np.asarray(np.where(np.asarray(adata.obs["end_points"]) > end_point_probability))[0]
+                end_points = np.asarray(np.where(np.asarray(adata.obs["end_points"]) >= end_point_probability))[0]
             except:
                 raise ValueError('End points must be provided in adata.obs["end_points"]. Run cytopath.terminal_states')
         else:
