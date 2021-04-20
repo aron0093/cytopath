@@ -1,9 +1,9 @@
 from .trajectory_estimation.sample_clustering import sample_clustering
-from .trajectory_estimation.cyto_path import cytopath
+from .trajectory_estimation.cyto_path import cytopath, estimate_cell_data
 from .trajectory_estimation.cytopath_merger import cytopath_merger
 
 def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.1,
-                 surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=1, method = 'kmeans', num_cores=1, copy=False):
+                 groupby='median', weighted=False, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=1, method = 'kmeans', num_cores=1, copy=False):
     
     adata = data.copy() if copy else data
     
@@ -16,6 +16,9 @@ def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neig
     # Align cells along trajectories
     cytopath(adata, basis=basis, neighbors_basis=neighbors_basis, surrogate_cell=surrogate_cell, fill_cluster=fill_cluster, cluster_freq=cluster_freq, n_neighbors_cluster=n_neighbors_cluster,
              n_neighbors=n_neighbors_alignment, cut_off=alignment_cutoff, num_cores=num_cores)
+    
+    # Estimate pseudotime, cell fate prob and alignment score at cell level
+    estimate_cell_data(adata, groupby=groupby, weighted=weighted)
 
     return adata if copy else None
 
