@@ -8,35 +8,8 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
     av_allign_score_glob=[]
     std_allign_score_glob=[]
     
-    step_counter = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)), dtype=float)
-    occurance_counter = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)))
-    alignment_aggregator = np.zeros((len(adata.uns['trajectories']["cells_along_trajectories"]), len(map_state)), dtype=float)
-    
-    counter=0
-    for end_point_cluster in adata.uns['run_info']["end_point_clusters"]:
-        trajectories = adata.uns['trajectories']["cells_along_trajectories_each_step"][np.where(adata.uns['trajectories']["cells_along_trajectories_each_step"]["End point"]==end_point_cluster)[0]]
-
-        for i in range(adata.uns['run_info']['trajectory_count'][end_point_cluster]):
-            av_trajectories = trajectories[np.where(trajectories["Trajectory"]==i)[0]]
-
-            for l in range(len(np.unique(av_trajectories["Step"]))):
-                av_steps = av_trajectories[np.where(av_trajectories["Step"]==l)[0]]
-
-                for k in range(len(av_steps)):
-                    if alignment_aggregator[counter, av_steps[k]["Cell"]] < av_steps[k]["Allignment Score"]:
-                        alignment_aggregator[counter, av_steps[k]["Cell"]] = av_steps[k]["Allignment Score"]
-                        step_counter[counter, av_steps[k]["Cell"]] = l
-                occurance_counter[counter, av_steps["Cell"].astype(int)] += 1
-            
-            counter+=1
-    
-    #average_step=np.divide(step_counter, occurance_counter, out=np.zeros_like(step_counter), where=occurance_counter!=0)
-    average_step = step_counter
-    average_step[occurance_counter==0]=np.NaN
-    
-    #average_allignment_score=np.divide(alignment_aggregator, occurance_counter, out=np.zeros_like(alignment_aggregator), where=occurance_counter!=0)
-    average_allignment_score = alignment_aggregator
-    average_allignment_score[occurance_counter==0]=np.NaN
+    step_time = adata.uns['trajectories']['step_time']
+    fate_prob = adata.uns['trajectories']['cell_fate_probability']
 
     sequence=0
    
@@ -66,7 +39,7 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
             
             # Plot step size for aligned cells
             sc_step = ax2.scatter(map_state[:,0], map_state[:,1], alpha=0.6, s=size, color="grey")
-            sc_step = ax2.scatter(map_state[:,0], map_state[:,1], alpha=0.9, s=size, c=average_step[sequence,:], cmap='YlGnBu')
+            sc_step = ax2.scatter(map_state[:,0], map_state[:,1], alpha=0.9, s=size, c=step_time[sequence,:], cmap='YlGnBu')
             fig.colorbar(sc_step, ax=ax2, label='Average step')
 
             ax2.set_ylabel(basis.upper()+' 2')
@@ -74,7 +47,7 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
 
             # Plot alignment score
             sc_score = ax3.scatter(map_state[:,0], map_state[:,1], alpha=0.6, s=size, color="grey")
-            sc_score = ax3.scatter(map_state[:,0], map_state[:,1], alpha=0.9, s=size, c=average_allignment_score[sequence,:], cmap='YlGnBu')
+            sc_score = ax3.scatter(map_state[:,0], map_state[:,1], alpha=0.9, s=size, c=fate_prob[sequence,:], cmap='YlGnBu')
             fig.colorbar(sc_score, ax=ax3, label='Alignment score')
 
             ax3.set_ylabel(basis.upper()+' 2')
@@ -144,6 +117,3 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
 
             av_allign_score_glob.append(av_allign_score)                                
             std_allign_score_glob.append(std_allign_score)
-
-    #adata.uns['trajectories']["average_allignment_score_per_step"] = av_allign_score_glob
-    #adata.uns['trajectories']["standard_deviation_allignment_score_per_step"] = std_allign_score_glob
