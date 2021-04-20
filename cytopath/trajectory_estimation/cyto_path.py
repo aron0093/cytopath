@@ -227,9 +227,6 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
         List of the cells along the trajectory.
     all_scores:
         List of arrays with the score for each cell allong the trajectory
-    Returns
-    -------
-    Returns list of arrays containing the scores of all cells at each step.
     """
     final_cluster = adata.uns['trajectories']["trajectories_coordinates"][end_point]
     directional_neighborhood_sequence = neighborhood_sequence
@@ -240,39 +237,6 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
                  directional_neighborhood_sequence[i][j] = np.delete(directional_neighborhood_sequence[i][j], np.where(all_scores[i][j]<=cutoff_score))
                  all_scores[i][j] = np.delete(all_scores[i][j], np.where(all_scores[i][j]<=cutoff_score))
     return directional_neighborhood_sequence, all_scores
-    
-def time_step_cells(adata, directional_neighborhood_sequence, all_scores, map_state):
-    """Calculates the average time step for each cell.
-    
-    Arguments
-    ---------
-    adata: :class:`~anndata.AnnData`
-        Annotated data matrix with end points.
-    map_state: matrix 
-        Which projection to use for the data.
-    directional_neighborhood_sequence: 
-        List of the cells along the trajectory after the cutoff
-    cell_score: 
-        Alignment scores of cells along the trajectory after the cutoff
-    
-    Returns
-    -------
-    Returns list of vectors, where for each cell index the average step is denoted.
-    """
-
-    max_score_counter = np.zeros((len(directional_neighborhood_sequence), len(map_state))) 
-    step_counter = np.zeros((len(directional_neighborhood_sequence), len(map_state)))
-    occurance_counter = np.zeros((len(directional_neighborhood_sequence), len(map_state)))
-    for i in range(len(directional_neighborhood_sequence)):
-        for j in range(len(directional_neighborhood_sequence[i])):
-            for k in range(len(directional_neighborhood_sequence[i][j])):
-                if max_score_counter[i, directional_neighborhood_sequence[i][j][k]] < all_scores[i][j][k]:
-                    max_score_counter[i, directional_neighborhood_sequence[i][j][k]] = all_scores[i][j][k]
-                    step_counter[i,directional_neighborhood_sequence[i][j][k]]=j  
-            #occurance_counter[i,directional_neighborhood_sequence[i][j]]+=1  
-    #average_step = np.divide(step_counter, occurance_counter, out=np.zeros_like(step_counter), where=occurance_counter!=0)
-    #average_step[occurance_counter==0] = np.NaN
-    return step_counter
     
 def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.25, n_neighbors='auto', cut_off=0.0, num_cores=1):
     """Calculates the average time step for each cell.
@@ -315,10 +279,7 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
         print('Removing cells below cutoff threshold from trajectories for end point  ' + end_point_cluster +' (i.e. cells neighborhood)')
         directional_neighborhood_sequence, all_scores = cutoff_score(adata, end_point=end_point_cluster, neighborhood_sequence=neighborhood_sequence, 
                                                                   all_scores=all_scores, cut_off=cut_off)
-        cell_score.append(all_scores)
-
-        print('Computing step based pseudotime in trajectories for end point  ' + end_point_cluster +' (i.e. cells neighborhood)')
-        step_ordering_trajectory.append(time_step_cells(adata, directional_neighborhood_sequence=directional_neighborhood_sequence, all_scores=all_scores, map_state=map_state))
+        cell_score.append(all_scores)       
         cells_trajectory.append(directional_neighborhood_sequence)
 
     cells_along_trajectories = []
@@ -329,8 +290,64 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
                 for l in range(len(cells_trajectory[i][j][k])):
                     cells_along_trajectories.append((end_point_clusters[i], j, k, cells_trajectory[i][j][k][l], cell_score[i][j][k][l]))
 
-    adata.uns['trajectories']["cells_along_trajectories"] = np.concatenate(step_ordering_trajectory)
     adata.uns['trajectories']["cells_along_trajectories_each_step"] = np.rec.fromrecords(cells_along_trajectories, 
                                                                                          dtype=[('End point', 'U32'), ('Trajectory', int), 
                                                                                                 ('Step', int), ('Cell', int), ('Allignment Score', float)])
+def estimate_cell_data(adata, groupby='median', weighted=False):
+    """Calculates the pseudotime per trajectory for each cell.
+    
+    Arguments
+    ---------
+    adata: :class:`~anndata.AnnData`
+        Annotated data matrix with end points. Must run cytopath.cytopath before.
+    groupby:  str(default: max)
+        One of max, min, median or mean. Grouping method for determing alignment score per cell per trajectory
+    weighted: Boolean (default:False)
+        If groupby is mean, reports mean pseduotime weighted by alignment score if true.
+    """
+    
+    if 'cells_along_trajectories_each_step' not in adata.uns['trajectories'].keys():
+        raise ValueError("Run cytopath.cytopath before estimating pseudotime.")
+        
+    cytopath_data = pd.DataFrame(adata.uns['trajectories']['cells_along_trajectories_each_step'].copy())
+    
+    if groupby == 'max':
+        cytopath_data_ = cytopath_data.loc[cytopath_data['Allignment Score']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('max')]
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
+        
+    elif groupby == 'min':
+        cytopath_data_ = cytopath_data.loc[cytopath_data['Allignment Score']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('min')]
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
+       
+    elif groupby == 'median':
+        cytopath_data_ = cytopath_data.loc[cytopath_data['Allignment Score']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('median')]
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
+    
+    elif groupby == 'mean' and weighted==False:
+        cytopath_data_ = cytopath_data.loc[cytopath_data['Allignment Score']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('mean')]
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
+
+    elif groupby == 'mean' and weighted==True:
+        cytopath_data_ = cytopath_data
+        cytopath_data_['Step'] = (cytopath_data_["Step"]*cytopath_data_['Allignment Score'])/cytopath_data_.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('sum')
+        step_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell'])['Step'].sum()
+
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
+        cytopath_data_['Step'] = step_
+
+    adata.uns['trajectories']['cells_along_trajectories'] = cytopath_data_.to_records()
+    
+    adata.uns['trajectories']['step_time'] = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns='End point', values='Step'), 
+                                                                                                 left_index=True, right_index=True, how='left').T.values
+    
+    
+    cell_fate_prob = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns='End point', values='Allignment Score'), 
+                                                                         left_index=True, right_index=True, how='left')
+    cell_fate_prob = cell_fate_prob.fillna(0).div(cell_fate_prob.sum(axis=1), axis=0)    
+    adata.uns['trajectories']['cell_fate_probability'] = cell_fate_prob.T.values
+    
+    
+    
+
+    
 
