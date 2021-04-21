@@ -324,7 +324,7 @@ def estimate_cell_data(adata, groupby='median', weighted=False):
         cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
     
     elif groupby == 'mean' and weighted==False:
-        cytopath_data_ = cytopath_data.loc[cytopath_data['Allignment Score']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('mean')]
+        cytopath_data_ = cytopath_data
         cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
 
     elif groupby == 'mean' and weighted==True:
