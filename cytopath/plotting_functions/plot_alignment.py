@@ -40,7 +40,7 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
             # Plot step size for aligned cells
             sc_step = ax2.scatter(map_state[:,0], map_state[:,1], alpha=0.6, s=size, color="grey")
             sc_step = ax2.scatter(map_state[:,0], map_state[:,1], alpha=0.9, s=size, c=step_time[sequence,:], cmap='YlGnBu')
-            fig.colorbar(sc_step, ax=ax2, label='Average step')
+            fig.colorbar(sc_step, ax=ax2, label='Step time')
 
             ax2.set_ylabel(basis.upper()+' 2')
             ax2.set_xlabel(basis.upper()+' 1')
@@ -48,7 +48,7 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
             # Plot alignment score
             sc_score = ax3.scatter(map_state[:,0], map_state[:,1], alpha=0.6, s=size, color="grey")
             sc_score = ax3.scatter(map_state[:,0], map_state[:,1], alpha=0.9, s=size, c=fate_prob[sequence,:], cmap='YlGnBu')
-            fig.colorbar(sc_score, ax=ax3, label='Alignment score')
+            fig.colorbar(sc_score, ax=ax3, label='Cell fate probability')
 
             ax3.set_ylabel(basis.upper()+' 2')
             ax3.set_xlabel(basis.upper()+' 1')
