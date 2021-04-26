@@ -242,13 +242,15 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
 
 
     subtrajectory_dict={}
+    subtrajectory_dict['trajectory_samples'] = {}
+    subtrajectory_dict['subtrajectory_labels'] = {}
+    subtrajectory_dict['subtrajectory_coordinates'] = {}
 
     for i in range(len(end_clusters)):
         trajectories = end_point_trajectories(adata, end_clusters, sel_end_clusters, end_points, cluster=i)
         if trajectories.shape[0] > 0:
             sequence_coordinates = coordinate_assigner(adata, trajectories, basis=basis)  
-            subtrajectory_dict[end_clusters[i]] = {}
-            subtrajectory_dict[end_clusters[i]]['trajectory_samples'] = trajectories
+            subtrajectory_dict['trajectory_samples'][end_clusters[i]] = trajectories
 
         # TODO: Allow different number of trajectories per terminal region
             if cluster_num!=None:
@@ -273,8 +275,19 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
                                                                             smoothing=smoothing)
                 
 
-            subtrajectory_dict[end_clusters[i]]['subtrajectory_labels'] = cluster_labels
-            subtrajectory_dict[end_clusters[i]]['subtrajectory_chains'] = cluster_chains
+            subtrajectory_dict['subtrajectory_labels'][end_clusters[i]] = cluster_labels
+            cluster_coordinates = []
+            for k in range(len(cluster_chains)):
+                subtraj_coords = [np.array(cluster_chains[k]).T[j] for j in range(np.array(cluster_chains[k]).shape[1])]
+                dtypes_ = [('Coordinate_'+str(j), float) for j in range(np.array(cluster_chains[k]).shape[1])]
+                
+                subtraj_coords.extend([np.arange(np.array(cluster_chains[k]).shape[0]), np.array([cluster_labels[k]]*np.array(cluster_chains[k]).shape[0])])
+                dtypes_.extend([('Step', int), ('Subtrajectory', int)])
+                
+                subtraj_coords = np.rec.fromarrays(subtraj_coords, dtype=dtypes_)
+                cluster_coordinates.append(subtraj_coords)
+      
+            subtrajectory_dict['subtrajectory_coordinates'][end_clusters[i]] = np.hstack(cluster_coordinates)
 
             # Discard trajectories that contain less than 10 % of all samples
             indexes = np.where(final_cluster_strength>(0.1*np.sum(final_cluster_strength)))[0]
