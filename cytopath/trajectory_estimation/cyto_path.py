@@ -337,11 +337,12 @@ def estimate_cell_data(adata, groupby='median', weighted=False):
 
     adata.uns['trajectories']['cells_along_trajectories'] = cytopath_data_.to_records()
     
-    adata.uns['trajectories']['step_time'] = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns='End point', values='Step'), 
+    adata.uns['trajectories']['step_time'] = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns=['End point', 'Trajectory'], 
+                                                                                                                                    values='Step'), 
                                                                                                  left_index=True, right_index=True, how='left').T.values
     
     
-    cell_fate_prob = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns='End point', values='Allignment Score'), 
+    cell_fate_prob = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns=['End point', 'Trajectory'], values='Allignment Score'), 
                                                                          left_index=True, right_index=True, how='left')
     cell_fate_prob = cell_fate_prob.fillna(0).div(cell_fate_prob.sum(axis=1), axis=0)    
     adata.uns['trajectories']['cell_fate_probability'] = cell_fate_prob.T.values
