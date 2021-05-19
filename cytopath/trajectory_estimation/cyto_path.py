@@ -245,8 +245,8 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
-    basis: str (default: umap)
-        The space in which the neighboring cells should be searched
+    basis: str/list (default: umap)
+        The space in which the neighboring cells should be searched. If None imputed expression is used. If list, imputed expression from supplied genes is used.
     surrogate_cell: Boolean (default:False)
         Whether or not a surrogate cell should be used for the neighborhood search
     n_neighbors:  str/int/float (default:'auto')
@@ -261,9 +261,17 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     cell_score=[]
     step_ordering_trajectory=[]
     cells_trajectory=[]
-    map_state=adata.obsm['X_'+basis]
+    
+    adata.uns['trajectories']['compositional_clusters'] = {}
+    
+    if basis == None:
+        map_state = adata.layers['Ms']
+    elif type(basis) == list:
+        map_state = adata[:, basis].layers['Ms']
+    else:
+        map_state = adata.obsm['X_'+basis]
+
     for end_point_cluster in adata.uns['trajectories']["trajectories_coordinates"].keys():
-        adata.uns['trajectories']['compositional_clusters'] = {}
         if surrogate_cell==True:
             print('Anchoring trajectories for end point  ' + end_point_cluster +' to cells in dataset and computing neighborhoods')
             neighborhood_sequence, cell_sequences = surrogate_cell_neighborhood_finder(adata, end_point_cluster, map_state, mode='distances', fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster,
