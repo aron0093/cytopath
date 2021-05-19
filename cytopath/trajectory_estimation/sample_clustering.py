@@ -4,7 +4,9 @@ from tqdm import tqdm
 from fastdtw import fastdtw
 from hausdorff import hausdorff_distance
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.cluster import AffinityPropagation, DBSCAN, KMeans
+from sklearn.cluster import AffinityPropagation, DBSCAN, KMeans, AgglomerativeClustering, OPTICS
+from scipy import stats, spatial
+from cytopath.utils import corr2_coeff
 
 # Function to define terminal regions for trajectories
 def end_point_cluster(adata):
@@ -36,7 +38,13 @@ def end_point_trajectories(adata, end_clusters, sel_end_clusters, sel_end_points
 # Function to assign coordiantes to markov chains in PCA space or another embedding
 def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
 
-    map_state = adata.obsm['X_'+basis]
+    if basis == None:
+        map_state = adata.layers['Ms']
+    elif type(basis) == list:
+        map_state = adata[:, basis].layers['Ms']
+    else:
+        map_state = adata.obsm['X_'+basis]
+        
     all_chains = []
     for r in range(len(all_seq_cluster)):
         x_y_chain = []
@@ -50,7 +58,13 @@ def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
 # First of two stage clustering of markov chains 
 def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
 
-   map_state = adata.obsm['X_'+basis]
+   if basis == None:
+       map_state = adata.layers['Ms']
+   elif type(basis) == list:
+       map_state = adata[:, basis].layers['Ms']
+   else:
+       map_state = adata.obsm['X_'+basis]
+        
    all_chains=sequence_coordinates
 
    # Calculate hausdorff distance
@@ -58,18 +72,17 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
    distances=np.zeros((len(all_chains), len(all_chains)))
    for i in tqdm(range(len(distances))):
         for j in  range(len(distances)-i):
-            haus = hausdorff_distance(all_chains[j+i], all_chains[i])
+            haus = hausdorff_distance(all_chains[j+i], all_chains[i], distance='euclidean')
             distances[i,j+i] = haus
             distances[j+i,i] = haus   
-
-   scaler = MinMaxScaler()
-   scaler.fit(distances)
-   distances=scaler.transform(distances)
-   affinity=1-distances
+   
+   affinity=-distances
 
    # Perform clustering using hausdorff distance
    print('Clustering using hausdorff distances')
 
+   '''cluster_labels = OPTICS(metric="precomputed", #min_cluster_size=0.05 ,cluster_method='dbscan'
+                          ).fit_predict(distances)'''
    cluster_labels = AffinityPropagation(affinity="precomputed").fit_predict(affinity)
    clusters=np.unique(cluster_labels)
 
@@ -125,16 +138,13 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
 
     for i in tqdm(range(len(average_cl_d))):
         for j in  range(len(average_cl_d)):
-            average_cl_d[i,j] = hausdorff_distance(cluster_chains[i], cluster_chains[j])
+            average_cl_d[i,j] = hausdorff_distance(cluster_chains[i], cluster_chains[j], distance='euclidean')
     
-    scaler = MinMaxScaler()
-    scaler.fit(average_cl_d)
-    average_cl_d=scaler.transform(average_cl_d)
-    
-    average_cl_d_affinity=1-average_cl_d
+    average_cl_d_affinity=-average_cl_d
 
     print('Clustering using hausdorff distances')
     if n_clusters==None:
+        #cluster_labels = OPTICS(metric="precomputed").fit_predict(average_cl_d)
         cluster_labels = AffinityPropagation(affinity="precomputed", convergence_iter=100).fit_predict(average_cl_d_affinity)
         clusters = np.unique(cluster_labels)
     else:
@@ -211,8 +221,8 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
-    basis: str (default: umap)
-        The space in which the samples are clustered.
+    basis: str/list (default: umap)
+        The space in which the neighboring cells should be searched. If None imputed expression is used. If list, imputed expression from supplied genes is used.
     smoothing: Boolean (default:False)
         Whether or not to smooth over the trajectories.
     cluster_num:  list (default:None)
@@ -232,7 +242,14 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
     except:
         raise ValueError("Run cytopath.sampling before trajectory inference.")
 
-    adata.uns['run_info']['trajectory_basis'] = str(adata.obsm['X_'+basis].shape[1]) + 'D_'+ basis
+    if basis == None:
+        adata.uns['run_info']['trajectory_basis'] = str(adata.X.shape[1]) + 'D_expression'
+    elif type(basis) == list:
+        adata.uns['run_info']['trajectory_basis'] = str(len(basis)) + 'D_custom_geneset_expression'
+        adata.uns['run_info']['trajectory_basis_geneset'] = basis
+    else:
+        adata.uns['run_info']['trajectory_basis'] = str(adata.obsm['X_'+basis].shape[1]) + 'D_'+ basis
+        
     end_clusters, sel_end_clusters, end_points = end_point_cluster(adata)
 
     adata.uns['run_info']['end_point_clusters'] = end_clusters
@@ -267,8 +284,7 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
                 print("Stage 1 clustering done. Alinging clusters for end point " + str(end_clusters[i]))
                 cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
                                                                                  basis=basis, all_seq_cluster=trajectories)
-                
-                
+
                 print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
                 final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
                                                                             cluster_labels_1=cluster_labels, n_clusters=None, method=None,
