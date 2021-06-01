@@ -3,8 +3,9 @@ import pandas as pd
 from tqdm import tqdm
 from fastdtw import fastdtw
 from hausdorff import hausdorff_distance
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import minmax_scale
 from sklearn.cluster import AffinityPropagation, DBSCAN, KMeans, AgglomerativeClustering, OPTICS
+from sknetwork.clustering import Louvain
 from scipy import stats, spatial
 from cytopath.utils import corr2_coeff
 
@@ -56,7 +57,7 @@ def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
     return all_chains
 
 # First of two stage clustering of markov chains 
-def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
+def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap", distance='cosine'):
 
    if basis == None:
        map_state = adata.layers['Ms']
@@ -72,18 +73,18 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
    distances=np.zeros((len(all_chains), len(all_chains)))
    for i in tqdm(range(len(distances))):
         for j in  range(len(distances)-i):
-            haus = hausdorff_distance(all_chains[j+i], all_chains[i], distance='euclidean')
+            haus = hausdorff_distance(all_chains[j+i], all_chains[i], distance=distance)
             distances[i,j+i] = haus
             distances[j+i,i] = haus   
    
    affinity=-distances
+   affinity = minmax_scale(affinity, axis=1)
 
    # Perform clustering using hausdorff distance
    print('Clustering using hausdorff distances')
 
-   '''cluster_labels = OPTICS(metric="precomputed", #min_cluster_size=0.05 ,cluster_method='dbscan'
-                          ).fit_predict(distances)'''
-   cluster_labels = AffinityPropagation(affinity="precomputed").fit_predict(affinity)
+   #cluster_labels = AffinityPropagation(affinity="precomputed").fit_predict(affinity)
+   cluster_labels = Louvain(resolution=1.25).fit_transform(affinity)
    clusters=np.unique(cluster_labels)
 
     # Pairwise alignment of chains within stage 1 clusters using DTW
@@ -100,7 +101,7 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
         cluster_strength.append(len(index_cluster))
 
         if len(aver_tr_cluster)>1:
-            average_trajectory = aver_tr_cluster 
+            average_trajectory = aver_tr_cluster
 
             while len(average_trajectory)>1:
                 pair_range = range(len(average_trajectory))
@@ -120,7 +121,7 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
                     for n in range(len(alligned_trajectory)):
                         alligned_tr[0,:] = average_trajectory[pairs[l][0]][alligned_trajectory[n,0]]
                         alligned_tr[1,:] = average_trajectory[pairs[l][1]][alligned_trajectory[n,1]]
-                        alligned_av[n,:] = np.median(alligned_tr,axis=0)
+                        alligned_av[n,:] = np.mean(alligned_tr,axis=0)
                     average_traj_while.append(alligned_av)
                 average_trajectory=average_traj_while
             average_alligned_tr=average_trajectory[0]
@@ -132,24 +133,26 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap"):
    return cluster_chains, cluster_strength, cluster_labels
 
 # Second clustering of aligned stage 1 clusters that output trajectories
-def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cluster_labels_1, n_clusters=None, method=None, smoothing=False):
+def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cluster_labels_1, n_clusters=None, method=None, smoothing=False, distance='cosine'):
         
     average_cl_d=np.zeros((len(cluster_chains), len(cluster_chains)))
 
     for i in tqdm(range(len(average_cl_d))):
         for j in  range(len(average_cl_d)):
-            average_cl_d[i,j] = hausdorff_distance(cluster_chains[i], cluster_chains[j], distance='euclidean')
+            average_cl_d[i,j] = hausdorff_distance(cluster_chains[i], cluster_chains[j], distance=distance)
     
     average_cl_d_affinity=-average_cl_d
+    average_cl_d_affinity = minmax_scale(average_cl_d_affinity, axis=1)
 
     print('Clustering using hausdorff distances')
     if n_clusters==None:
         #cluster_labels = OPTICS(metric="precomputed").fit_predict(average_cl_d)
-        cluster_labels = AffinityPropagation(affinity="precomputed", convergence_iter=100).fit_predict(average_cl_d_affinity)
+        #cluster_labels = AffinityPropagation(affinity="precomputed", convergence_iter=100).fit_predict(average_cl_d_affinity)
+        cluster_labels = Louvain(resolution=0.75).fit_transform(average_cl_d_affinity)
         clusters = np.unique(cluster_labels)
     else:
         if method=='kmeans':
-            cluster_labels = KMeans(n_clusters=n_clusters,precompute_distances=True).fit_predict(average_cl_d_affinity)
+            cluster_labels = KMeans(n_clusters=n_clusters, precompute_distances=True).fit_predict(average_cl_d_affinity)
             clusters=np.unique(cluster_labels)
         
     all_trajectories_labels = np.zeros((len(cluster_labels_1)))
@@ -190,7 +193,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
                     for n in range(len(alligned_trajectory)):
                         alligned_tr[0,:]=average_trajectory[pairs[l][0]][alligned_trajectory[n,0]]
                         alligned_tr[1,:]=average_trajectory[pairs[l][1]][alligned_trajectory[n,1]]
-                        alligned_av[n,:]=np.median(alligned_tr,axis=0)
+                        alligned_av[n,:]=np.mean(alligned_tr,axis=0)
                     average_traj_while.append(alligned_av)
                 average_trajectory=average_traj_while
             average_alligned_tr=average_trajectory[0]
@@ -214,7 +217,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
 
     return final_cluster, final_cluster_strength
     
-def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, method='kmeans'):
+def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, method='kmeans', distance='cosine'):
     """Clusters samples for each terminal region and estimates trajectories.
     
     Arguments
@@ -227,8 +230,10 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
         Whether or not to smooth over the trajectories.
     cluster_num:  list (default:None)
         Number of trajectories (clusters) to be expected for each terminal region.
-    method=str (default:'kmeans'):
+    method: str (default:'kmeans'):
         Which clustering method to use.
+    distance: str (default:'cosine'):
+        Which distabce metric to use (see py-hausdorff for details)
     Returns
     -------
     adata.uns["trajectories_2"]: Dictionary of the average trajectories
@@ -273,22 +278,27 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
             if cluster_num!=None:
                 print("Clustering and aligning samples for end point " + str(end_clusters[i]))
                 cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
-                                                                                         basis=basis, all_seq_cluster=trajectories)
+                                                                                         basis=basis, all_seq_cluster=trajectories,
+                                                                                         distance=distance)
                 
                 print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
                 final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
                                                                             cluster_labels_1=cluster_labels, n_clusters=cluster_num, method=method,
-                                                                            smoothing=smoothing)
-            else:
+                                                                            smoothing=smoothing, distance=distance)
+            elif cluster_num==None:
 
                 print("Stage 1 clustering done. Alinging clusters for end point " + str(end_clusters[i]))
                 cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
-                                                                                 basis=basis, all_seq_cluster=trajectories)
-
+                                                                                 basis=basis, all_seq_cluster=trajectories,
+                                                                                 distance=distance)
+                
+                
                 print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
                 final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
                                                                             cluster_labels_1=cluster_labels, n_clusters=None, method=None,
-                                                                            smoothing=smoothing)
+                                                                            smoothing=smoothing, distance=distance)
+                #final_trajectory = cluster_chains
+                #final_cluster_strength = cluster_strength
                 
 
             subtrajectory_dict['subtrajectory_labels'][end_clusters[i]] = cluster_labels
