@@ -3,7 +3,7 @@ from .trajectory_estimation.cyto_path import cytopath, estimate_cell_data
 from .trajectory_estimation.cytopath_merger import cytopath_merger
 
 def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.1,
-                 groupby='median', weighted=False, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=1, method = 'kmeans', num_cores=1, copy=False):
+                 groupby='median', weighted=False, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=1, method = 'kmeans', distance = 'cosine', num_cores=1, copy=False):
     
     adata = data.copy() if copy else data
     
@@ -11,7 +11,7 @@ def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neig
 
     # Clustering of cell sequences to obtain trajectories
     sample_clustering(adata, basis=basis, smoothing=smoothing, 
-                          cluster_num=cluster_num, method=method)
+                          cluster_num=cluster_num, method=method, distance=distance)
 
     # Align cells along trajectories
     cytopath(adata, basis=basis, neighbors_basis=neighbors_basis, surrogate_cell=surrogate_cell, fill_cluster=fill_cluster, cluster_freq=cluster_freq, n_neighbors_cluster=n_neighbors_cluster,
