@@ -7,7 +7,6 @@ from sklearn.preprocessing import minmax_scale
 from sklearn.cluster import AffinityPropagation, DBSCAN, KMeans, AgglomerativeClustering, OPTICS
 from sknetwork.clustering import Louvain
 from scipy import stats, spatial
-from cytopath.utils import corr2_coeff
 
 # Function to define terminal regions for trajectories
 def end_point_cluster(adata):
