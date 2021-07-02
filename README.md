@@ -6,7 +6,17 @@ Cytopath can infer trajectories with or without root/terminal state supervision.
 ## Installation
 ``` pip install cytopath```
 
-cytopath depends on scvelo to process the data and may require additional dependencies of scvelo to be installed manually.
+cytopath depends on *scvelo* to process the data and may require additional dependencies of scvelo to be installed manually. Other dependencies are the following:
+
+* numpy
+* scipy
+* anndata
+* scvelo>=0.1.25
+* joblib
+* fastdtw
+* hausdorff
+* scitkit-network
+* tqdm
 
 ## Sample notebooks
 Sample notebooks can be found [here](https://github.com/aron0093/cytopath-notebooks).
