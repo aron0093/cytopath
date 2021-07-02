@@ -2,7 +2,7 @@ import numpy as np
 from scipy import spatial
 import matplotlib.pyplot as plt
       
-def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size = 10, smoothing=False):
+def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), save_type='svg', size = 10, smoothing=False):
     
     map_state = adata.obsm['X_'+basis]
     av_allign_score_glob=[]
@@ -28,7 +28,7 @@ def pl_cytopath_alignment(adata, basis="umap", folder="", figsize=(12,3), size =
 
             # Plotting
             path = folder+"_end_point_"+end_point_cluster+"_cytopath_"+str(i)+\
-                 "occurance"+str(adata.uns['run_info']["trajectories_sample_counts"][end_point_cluster][i])+".png"
+                 "occurance"+str(adata.uns['run_info']["trajectories_sample_counts"][end_point_cluster][i])+"."+save_type
 
             fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, figsize=figsize) 
             ax1.plot(range(len(np.unique(av_trajectories["Step"]))), av_allign_score, color='black')
