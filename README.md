@@ -19,7 +19,7 @@ cytopath depends on *scvelo* to process the data and may require additional depe
 * tqdm
 
 ## Sample notebooks
-Sample notebooks can be found [here](https://github.com/aron0093/cytopath-notebooks).
+Sample notebooks can be found [here](https://github.com/aron0093/cytopath-notebooks). (Pending update to current API)
 
 
 
