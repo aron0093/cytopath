@@ -9,7 +9,7 @@ setup(
   author = 'Revant Gupta',
   author_email = 'revant.gupta.93@gmail.com',
   url = 'https://github.com/aron0093/cytopath',
-  download_url = 'https://github.com/aron0093/cytopath/archive/v_016_1.tar.gz',
+  download_url = 'https://github.com/aron0093/cytopath/archive/v_016_2.tar.gz',
   keywords = ['Trajectory Inference', 'single-cell RNA sequencing', 'RNA velocity'],
   install_requires=[
           'numpy>=1.20.0',
