@@ -19,7 +19,8 @@ setup(
           'joblib',
           'fastdtw',
           'hausdorff',
-          'tqdm'
+          'tqdm',
+	  'scikit-network'
       ],
   classifiers=[
     'Development Status :: 3 - Alpha',
