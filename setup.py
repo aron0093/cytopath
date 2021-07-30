@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
   name='cytopath',
-  version='0.1.6.post1',
+  version='0.1.6.post2',
   description='Simulation based inference of differentiation trajectories from RNA velocity fields.',
   license='BSD 3-Clause License',
   packages=find_packages(),
@@ -12,7 +12,7 @@ setup(
   download_url = 'https://github.com/aron0093/cytopath/archive/v_016_1.tar.gz',
   keywords = ['Trajectory Inference', 'single-cell RNA sequencing', 'RNA velocity'],
   install_requires=[
-          'numpy',
+          'numpy>=1.20.0',
           'scipy',
           'anndata',
           'scvelo>=0.1.25',
@@ -27,10 +27,6 @@ setup(
     'Intended Audience :: Science/Research',
     'Topic :: Software Development :: Build Tools',
     'License :: OSI Approved :: BSD License',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.4',
-    'Programming Language :: Python :: 3.5',
-    'Programming Language :: Python :: 3.6',
     'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: 3.8',
   ])
