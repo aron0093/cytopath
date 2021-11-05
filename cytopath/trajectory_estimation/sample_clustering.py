@@ -6,7 +6,7 @@ from hausdorff import hausdorff_distance
 from sklearn.preprocessing import minmax_scale
 from sklearn.cluster import AffinityPropagation, DBSCAN, KMeans, AgglomerativeClustering, OPTICS
 from sknetwork.clustering import Louvain
-from scipy import stats, spatial
+from scipy import stats, spatial, sparse
 
 # Function to define terminal regions for trajectories
 def end_point_cluster(adata):
@@ -77,7 +77,7 @@ def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap", di
             distances[j+i,i] = haus   
    
    affinity=-distances
-   affinity = minmax_scale(affinity, axis=1)
+   affinity = sparse.csr_matrix(minmax_scale(affinity, axis=1))
 
    # Perform clustering using hausdorff distance
    print('Clustering using hausdorff distances')
@@ -141,7 +141,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
             average_cl_d[i,j] = hausdorff_distance(cluster_chains[i], cluster_chains[j], distance=distance)
     
     average_cl_d_affinity=-average_cl_d
-    average_cl_d_affinity = minmax_scale(average_cl_d_affinity, axis=1)
+    average_cl_d_affinity = sparse.csr_matrix(minmax_scale(average_cl_d_affinity, axis=1))
 
     print('Clustering using hausdorff distances')
     if n_clusters==None:
