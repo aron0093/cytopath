@@ -301,14 +301,14 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     adata.uns['trajectories']["cells_along_trajectories_each_step"] = np.rec.fromrecords(cells_along_trajectories, 
                                                                                          dtype=[('End point', 'U32'), ('Trajectory', int), 
                                                                                                 ('Step', int), ('Cell', int), ('Allignment Score', float)])
-def estimate_cell_data(adata, groupby='median', weighted=False):
+def estimate_cell_data(adata, groupby='mean', weighted=True):
     """Calculates the pseudotime per trajectory for each cell.
     
     Arguments
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points. Must run cytopath.cytopath before.
-    groupby:  str(default: max)
+    groupby:  str(default: median)
         One of max, min, median or mean. Grouping method for determing alignment score per cell per trajectory
     weighted: Boolean (default:False)
         If groupby is mean, reports mean pseduotime weighted by alignment score if true.
@@ -318,8 +318,16 @@ def estimate_cell_data(adata, groupby='median', weighted=False):
         raise ValueError("Run cytopath.cytopath before estimating pseudotime.")
         
     cytopath_data = pd.DataFrame(adata.uns['trajectories']['cells_along_trajectories_each_step'].copy())
+
+    if groupby == 'max_step':
+        cytopath_data_ = cytopath_data.loc[cytopath_data['Step']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Step"].transform('max')]
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
+        
+    elif groupby == 'min_step':
+        cytopath_data_ = cytopath_data.loc[cytopath_data['Step']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Step"].transform('min')]
+        cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
     
-    if groupby == 'max':
+    elif groupby == 'max':
         cytopath_data_ = cytopath_data.loc[cytopath_data['Allignment Score']==cytopath_data.groupby(['End point', 'Trajectory', 'Cell'])["Allignment Score"].transform('max')]
         cytopath_data_ = cytopath_data_.groupby(['End point', 'Trajectory', 'Cell']).mean()
         

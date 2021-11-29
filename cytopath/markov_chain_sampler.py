@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import scvelo
 from scipy import sparse
 from tqdm import tqdm
 from joblib import Parallel, delayed
@@ -48,7 +49,7 @@ def markov_sim(j, sim_number, max_steps, root_cells, clusters, trans_matrix, tra
             clust_state[k, i] = clusters[currState[k, i]]
     return currState, np.sum(-np.log(prob_state), axis=1), clust_state
 
-def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=200, traj_number=1000, sim_number=2000,
+def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=30, traj_number=500, sim_number=500,
                 end_point_probability=0.95, root_cell_probability=0.95, end_points=[], root_cells=[], end_clusters = [], root_clusters=[], min_clusters=3,
                 normalize=False, unique=True, num_cores=1, copy=False):
     
@@ -60,11 +61,11 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
         Annotated data matrix with transition probabilities, end points and clustering.
     matrix_key: Key for accessing transition matrix stored in adata.uns
     cluster_key: Clustering of cells to use for terminal region annotation.  
-    max_steps: `integer` (default: 200)
+    max_steps: `integer` (default: 30)
         Maximum number steps of simulation.
-    traj_number: `integer`(default: 1000)
+    traj_number: `integer`(default: 500)
         Minimum number of samples generated for each terminal region.
-    sim_number: `integer`(default: 2000)
+    sim_number: `integer`(default: 500)
         Initial number of samples generated for each terminal region.
     end_point_probability: 'float' (default:0.95)
         End point probability threshold at which a cell is considered to be a terminal state for samples.
@@ -174,12 +175,28 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
         if len(end_clusters) == 0:
             try:
                 end_points = np.asarray(np.where(np.asarray(adata.obs["end_points"]) >= end_point_probability))[0]
+                #TODO
+                '''
+                 # Recluster end points if based on probability
+                end_points_adata = adata[end_points]
+                scvelo.tl.louvain(end_points_adata)
+                adata.obs['updated_'+cluster_key] = adata.obs[cluster_key].astype(str).values
+                adata.obs.iloc[end_points, adata.obs.columns.get_loc('updated_'+cluster_key)] = 'End_'+ end_points_adata.obs['louvain'].astype(str).values
+                
+                del end_points_adata
+
+                cluster_key = 'updated_'+cluster_key
+
+                clusters = adata.obs[cluster_key].astype(str).values
+                adata.uns['run_info'] = {'cluster_key': cluster_key}
+                '''
+
             except:
                 raise ValueError('End points must be provided in adata.obs["end_points"]. Run cytopath.terminal_states')
         else:
-            end_points = np.asarray(np.where(np.asarray(adata.obs[cluster_key].isin(end_clusters))))[0]
+            end_points = np.asarray(np.where(np.asarray(adata.obs[cluster_key].isin(end_clusters))))[0]        
+
     adata.uns['run_info']['end_points'] = end_points
-                
     end_point_clusters = adata.obs[cluster_key][end_points].astype(str).values
     end_clusters_ = np.unique(end_point_clusters)
     
@@ -197,9 +214,6 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
         print("Sampling round " + str(count))
         count+=1
 
-        # TODO: Add transition probability matrix update that removes transitions exclusive to end points sampled adequately 
-              # to increase sampling efficiency for larger datasets.
-
         # Parallelisation over the cells: 1 Thread for the samples of each cell.
         if len(root_cells) == 1:
             all_seq, prob_all_seq, cluster_seq_all = markov_sim(0, sim_number_, max_steps, root_cells, clusters, trans_matrix,
@@ -208,7 +222,6 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
             results = Parallel(n_jobs=num_cores)(delayed(markov_sim)(j, sim_number_, max_steps, root_cells, clusters, trans_matrix,
                                                                                 trans_matrix_indice_zeros, 
                                                                                 trans_matrix_probabilites_zeros) for j in tqdm(range(len(root_cells))))
-
             # Results are stored in np.arrays
             all_seq = np.empty((len(root_cells)*sim_number_, max_steps), dtype=np.int32)
             prob_all_seq = np.empty((len(root_cells)*sim_number_), dtype=np.float32)
@@ -225,6 +238,8 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
         indices = [idx for idx in np.arange(all_seq.shape[0]) if np.unique(cluster_seq_all[idx]).shape[0] >= min_clusters]
         if len(indices) == 0:
             raise ValueError('Zero samples obtained. Try increasing max_steps.')
+        elif len(indices) < 0.1*traj_number:
+            warnings.warn('Less than 10% of requested samples obtained. The process may run out of memory before converging.', ResourceWarning)
         all_seq = [all_seq[i] for i in sorted(indices)]
         prob_all_seq = [prob_all_seq[i] for i in sorted(indices)]
         cluster_seq_all = [cluster_seq_all[i] for i in sorted(indices)]
