@@ -6,7 +6,7 @@ Usage
 Installation
 ------------
 
-Install cytopath from PyPi
+Install cytopath from PyPI using pip
 
 .. code-block:: console
 
