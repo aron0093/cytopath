@@ -5,8 +5,7 @@ Cytopath is a method for trajectory inference that takes advantage of transcript
 
 Cytopath can infer trajectories with or without root/terminal state supervision. No topological constraints (e.g. a tree structure) are placed on the inference as each trajectory is modelled independently. Number of trajectories to be inferred can either be defined or estimated in an unsupervised fashion. Subsequent statistical analysis reveals the topological and molecular characteristics of the differentiation process.
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
+Check out the :doc:`notebooks` section for demonstration of cytopath on publicly available datasets.
 
 .. note::
 
