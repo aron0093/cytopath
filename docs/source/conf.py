@@ -30,6 +30,8 @@ templates_path = ['_templates']
 # -- Options for HTML output
 
 html_theme = 'sphinx_rtd_theme'
+github_repo = "cytopath"
+github_nb_repo = "cytopath-notebooks"
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
