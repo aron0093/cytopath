@@ -3,7 +3,7 @@
 # -- Project information
 
 project = 'Cytopath'
-copyright = '2020, Revant Gupta'
+copyright = '2022, Revant Gupta'
 author = 'Revant Gupta'
 
 release = '0.1.7'
