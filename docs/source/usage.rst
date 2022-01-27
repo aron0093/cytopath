@@ -6,7 +6,7 @@ Usage
 Installation
 ------------
 
-To use Cytopath, first install it using pip:
+Install cytopath from PyPi
 
 .. code-block:: console
 
