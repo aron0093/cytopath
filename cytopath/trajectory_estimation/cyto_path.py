@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from scipy import spatial
 from scvelo.preprocessing.neighbors import get_connectivities
 from sklearn.metrics.pairwise import cosine_similarity
