@@ -50,7 +50,7 @@ def markov_sim(j, sim_number, max_steps, root_cells, clusters, trans_matrix, tra
     return currState, np.sum(-np.log(prob_state), axis=1), clust_state
 
 def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=1.0, traj_number=500, sim_number=500,
-                end_point_probability=0.95, root_cell_probability=0.95, end_points=[], root_cells=[], end_clusters = [], root_clusters=[], min_clusters=3,
+                end_point_probability=0.99, root_cell_probability=0.99, end_points=[], root_cells=[], end_clusters = [], root_clusters=[], min_clusters=3,
                 normalize=False, unique=True, num_cores=1, copy=False):
     
     """Markov sampling of cell sequences starting from defined root cells to defined terminal regions based on a cell-cell transition probability matrix.
