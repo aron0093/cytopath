@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from fastdtw import fastdtw
 from hausdorff import hausdorff_distance
 from sklearn.preprocessing import minmax_scale
