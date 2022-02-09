@@ -2,7 +2,7 @@ import math
 import numpy as np
 import scvelo
 from scipy import sparse
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from joblib import Parallel, delayed
 import warnings
 
@@ -49,7 +49,7 @@ def markov_sim(j, sim_number, max_steps, root_cells, clusters, trans_matrix, tra
             clust_state[k, i] = clusters[currState[k, i]]
     return currState, np.sum(-np.log(prob_state), axis=1), clust_state
 
-def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=30, traj_number=500, sim_number=500,
+def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=1.0, traj_number=500, sim_number=500,
                 end_point_probability=0.95, root_cell_probability=0.95, end_points=[], root_cells=[], end_clusters = [], root_clusters=[], min_clusters=3,
                 normalize=False, unique=True, num_cores=1, copy=False):
     
@@ -149,7 +149,7 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
     
     # Use louvain warning
     if cluster_key != 'louvain':
-        warnings.warn('A finely resolved clustering is required to identify terminal regions. Consider using louvain clustering.')
+        warnings.warn('A finely resolved clustering is required to identify terminal regions. Consider using louvain clustering.', UserWarning)
 
     ### Checks Done
 
@@ -236,10 +236,7 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
                
         # Filter samples that visit less than min_clusters clusters
         indices = [idx for idx in np.arange(all_seq.shape[0]) if np.unique(cluster_seq_all[idx]).shape[0] >= min_clusters]
-        if len(indices) == 0:
-            raise ValueError('Zero samples obtained. Try increasing max_steps.')
-        elif len(indices) < 0.1*traj_number:
-            warnings.warn('Less than 10% of requested samples obtained. The process may run out of memory before converging.', ResourceWarning)
+
         all_seq = [all_seq[i] for i in sorted(indices)]
         prob_all_seq = [prob_all_seq[i] for i in sorted(indices)]
         cluster_seq_all = [cluster_seq_all[i] for i in sorted(indices)]
@@ -271,7 +268,22 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
             all_seq_cluster = all_seq[indices_cluster]
             all_seq_cluster = all_seq_cluster[0]
             traj_num.append(len(all_seq_cluster))
-            
+        
+        # Re adjust number of simulation steps and resample if required.
+        if min(traj_num) < min_sim_ratio*traj_number:
+            if count == 5:
+                raise ValueError('Insufficient samples obtained after 5 rounds. Try increasing max steps.')
+            else:
+                max_steps = int(2*(max_steps)+10) # Offset adds stability if starting value is too low
+
+                glob_all_seq = []
+                glob_prob_all_seq = []
+                glob_cluster_seq_all = []
+
+                print('Insufficient proportion of requested samples obtained. Increasing simulation steps to {}'.format(max_steps))
+                continue
+
+        # Alternatively just perform more sampling (Feature active if min_sim_ratio < 1)    
         sim_number_ = math.ceil(traj_number/(min(traj_num) + 1))*sim_number
     
     # Retrieve traj_number of samples for each end point.
@@ -302,6 +314,7 @@ def sampling(data, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=
         cluster_sequences.append(loc_cluster_seq[idx_range])
     
     # Save results
+    adata.uns['run_info']['simulation_steps'] = max_steps
     adata.uns['run_info']['didrun'] = True
 
     adata.uns['samples'] = {}
