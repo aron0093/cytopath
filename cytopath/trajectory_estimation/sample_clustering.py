@@ -38,7 +38,7 @@ def end_point_trajectories(adata, end_clusters, sel_end_clusters, sel_end_points
 # Function to assign coordiantes to markov chains in PCA space or another embedding
 def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
 
-    if basis == None:
+    if basis is None:
         map_state = adata.layers['Ms']
     elif type(basis) == list:
         map_state = adata[:, basis].layers['Ms']
@@ -58,7 +58,7 @@ def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
 # First of two stage clustering of markov chains 
 def preclustering(adata, all_seq_cluster, sequence_coordinates, basis="umap", distance='cosine'):
 
-   if basis == None:
+   if basis is None:
        map_state = adata.layers['Ms']
    elif type(basis) == list:
        map_state = adata[:, basis].layers['Ms']
@@ -144,7 +144,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
     average_cl_d_affinity = sparse.csr_matrix(minmax_scale(average_cl_d_affinity, axis=1))
 
     print('Clustering using hausdorff distances')
-    if n_clusters==None:
+    if n_clusters is None:
         #cluster_labels = OPTICS(metric="precomputed").fit_predict(average_cl_d)
         #cluster_labels = AffinityPropagation(affinity="precomputed", convergence_iter=100).fit_predict(average_cl_d_affinity)
         cluster_labels = Louvain(resolution=0.75).fit_transform(average_cl_d_affinity)
@@ -203,7 +203,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
            
     # TODO: Moving average concept needs development
 
-    if smoothing==True:
+    if smoothing:
         for i in range(len(final_cluster)):
             window_width=4
             cumsum_vec = np.cumsum(np.insert(final_cluster[i][:,0], 0, 0)) 
@@ -242,11 +242,11 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
     
     # Check if samples has been run and information is complete
     try:
-        adata.uns['run_info']['didrun'] == True
+        adata.uns['run_info']['didrun']
     except:
         raise ValueError("Run cytopath.sampling before trajectory inference.")
 
-    if basis == None:
+    if basis is None:
         adata.uns['run_info']['trajectory_basis'] = str(adata.X.shape[1]) + 'D_expression'
     elif type(basis) == list:
         adata.uns['run_info']['trajectory_basis'] = str(len(basis)) + 'D_custom_geneset_expression'
@@ -261,7 +261,6 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
     final_trajectories = []
     final_cluster_count = []
 
-
     subtrajectory_dict={}
     subtrajectory_dict['trajectory_samples'] = {}
     subtrajectory_dict['subtrajectory_labels'] = {}
@@ -274,25 +273,25 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
             subtrajectory_dict['trajectory_samples'][end_clusters[i]] = trajectories
 
         # TODO: Allow different number of trajectories per terminal region
-            if cluster_num!=None:
+            if cluster_num is not None:
                 print("Clustering and aligning samples for end point " + str(end_clusters[i]))
                 cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
                                                                                          basis=basis, all_seq_cluster=trajectories,
                                                                                          distance=distance)
                 
-                print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
+                print("Final clustering done. Aligning clusters for end point " + str(end_clusters[i]))
                 final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
                                                                             cluster_labels_1=cluster_labels, n_clusters=cluster_num, method=method,
                                                                             smoothing=smoothing, distance=distance)
-            elif cluster_num==None:
+            elif cluster_num is None:
 
-                print("Stage 1 clustering done. Alinging clusters for end point " + str(end_clusters[i]))
+                print("Stage 1 clustering done. Aligning clusters for end point " + str(end_clusters[i]))
                 cluster_chains, cluster_strength, cluster_labels = preclustering(adata, sequence_coordinates=sequence_coordinates,
                                                                                  basis=basis, all_seq_cluster=trajectories,
                                                                                  distance=distance)
                 
                 
-                print("Final clustering done. Alingning clusters for end point " + str(end_clusters[i]))
+                print("Final clustering done. Aligning clusters for end point " + str(end_clusters[i]))
                 final_trajectory, final_cluster_strength = clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, 
                                                                             cluster_labels_1=cluster_labels, n_clusters=None, method=None,
                                                                             smoothing=smoothing, distance=distance)
