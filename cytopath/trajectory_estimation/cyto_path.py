@@ -7,7 +7,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from joblib import Parallel, delayed
 
 def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster=True, n_neighbors=30, cluster_freq=0.1, mode='distances', recurse_neighbors=True):
-    """Finds surrogate cell and uses the scvelo neighborhood graph to finds its recursive neighbors. Applicable when mean is used to compute trajectory coordinates. Default is median.
+    """Finds surrogate cell and uses the scvelo neighborhood graph to finds its recursive neighbors. 
+       Applicable when mean is used to compute trajectory coordinates. Default is median.
     
     Arguments
     ---------
@@ -28,7 +29,7 @@ def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster
     final_cluster=adata.uns['trajectories']["trajectories_coordinates"][end_point]
     final_sequences=[]
     for i in tqdm(range(len(final_cluster))):
-        final_cluster_sequence=final_cluster['trajectory_'+str(i)+'_coordinates']
+        final_cluster_sequence=final_cluster['trajectory_{}_coordinates'.format(i)]
         cell_sequences=[]
         for j in range(len(final_cluster_sequence)):
             cell_sequences.append(spatial.KDTree(map_state).query(final_cluster_sequence[j])[1])
@@ -42,8 +43,8 @@ def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster
         for j in range(len(final_sequences[i])):
             local_neighs.append(neighborhood[final_sequences[i][j]].nonzero()[1])
             
-            if fill_cluster == True:
-                print('Fill cluster not implemented.')
+            if fill_cluster:
+                raise NotImplementedError('Fill cluster not implemented.')
 
         neighborhood_sequence.append(local_neighs)
     return neighborhood_sequence, cell_sequences
@@ -61,7 +62,7 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
         Enforce only cells in compostional clusters are assigned score.
     n_neighbors_cluster: `integer` (Default:30)
         Number of cells to consider for determining compositional clusters
-    cluster_freq: `float` (Default: 0.25)
+    cluster_freq: `float` (Default: 0.5)
         Frequency of cell cluster cells per step to consider as compositonal cluster
     n_neighbors: `` (default: 'auto')
         Number of cells to consider for alignment scoring.
@@ -70,14 +71,13 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     -------
     Returns list of arrays containing the sequence of neighborhoods along the trajectory.
     """
-
     # Cell neighborhood of trajectory
     final_cluster=adata.uns['trajectories']["trajectories_coordinates"][end_point]
     
     # Find clusters composing the trajectory
     compositional_clusters = []
     for i in tqdm(range(len(final_cluster))):
-        final_cluster_sequence=final_cluster['trajectory_'+str(i)+'_coordinates']
+        final_cluster_sequence=final_cluster['trajectory_{}_coordinates'.format(i)]
         for j in range(len(final_cluster_sequence)):
             cell_sequences_ = spatial.KDTree(map_state).query(final_cluster_sequence[j], k=n_neighbors_cluster)[1]
             compositional_clusters_ = adata.obs.loc[adata.obs.index.values[cell_sequences_], adata.uns['run_info']['cluster_key']].astype(str)
@@ -95,11 +95,11 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
 
         final_cluster_ = {}
         for i in range(len(final_cluster)):
-            final_cluster_sequence=final_cluster['trajectory_'+str(i)+'_coordinates']
+            final_cluster_sequence=final_cluster['trajectory_{}_coordinates'.format(i)]
             final_cluster_sequence_ = []
             for j in range(len(final_cluster_sequence)):
                 final_cluster_sequence_.append(adata.obsm['X_pca'][spatial.KDTree(map_state).query(final_cluster_sequence[j])[1]])
-            final_cluster_['trajectory_'+str(i)+'_coordinates'] = final_cluster_sequence_
+            final_cluster_['trajectory_{}_coordinates'.format(i)] = final_cluster_sequence_
         final_cluster = final_cluster_
     else:
         map_state_ = map_state
@@ -107,19 +107,22 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     
     # Neighborhood size
     if n_neighbors == 'auto':
-        n_neighbors = adata.obs.loc[adata.obs[adata.uns['run_info']['cluster_key']].astype(str).isin(adata.uns['trajectories']['compositional_clusters'][end_point]), adata.uns['run_info']['cluster_key']].value_counts().max()
+        n_neighbors = adata.obs.loc[adata.obs[adata.uns['run_info']['cluster_key']].astype(str).isin(adata.uns['trajectories']['compositional_clusters'][end_point]), 
+                      adata.uns['run_info']['cluster_key']].value_counts().max()
 
     # Create neighborhood
     neighborhood_sequence=[]
     for i in tqdm(range(len(final_cluster))):
-        final_cluster_sequence=final_cluster['trajectory_'+str(i)+'_coordinates']
+        final_cluster_sequence=final_cluster['trajectory_{}_coordinates'.format(i)]
         cell_sequences=[]
         for j in range(len(final_cluster_sequence)):
-            if fill_cluster == False:
-                cell_sequences.append(spatial.KDTree(map_state_).query(final_cluster_sequence[j], k=n_neighbors)[1])
-            elif fill_cluster == True:
+            if fill_cluster:
                 cell_sequences_ = spatial.KDTree(map_state_).query(final_cluster_sequence[j], k=n_neighbors)[1]
-                cell_sequences.append(cell_sequences_[np.where(adata.obs.loc[adata.obs.index.values[cell_sequences_], adata.uns['run_info']['cluster_key']].astype(str).isin(adata.uns['trajectories']['compositional_clusters'][end_point]))[0]])
+                cell_sequences.append(cell_sequences_[np.where(adata.obs.loc[adata.obs.index.values[cell_sequences_], 
+                                      adata.uns['run_info']['cluster_key']].astype(str).isin(adata.uns['trajectories']['compositional_clusters'][end_point]))[0]])
+            else:
+                cell_sequences.append(spatial.KDTree(map_state_).query(final_cluster_sequence[j], k=n_neighbors)[1])
+
         neighborhood_sequence.append(cell_sequences)
     return neighborhood_sequence
     
@@ -159,7 +162,7 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
         score=np.zeros((len(neighborhood_sequence[i][j])))
 
         if j==0:
-            avg_difference=final_cluster['trajectory_'+str(i)+'_coordinates'][j+1]-final_cluster['trajectory_'+str(i)+'_coordinates'][j]
+            avg_difference=final_cluster['trajectory_{}_coordinates'.format(i)][j+1]-final_cluster['trajectory_{}_coordinates'.format(i)][j]
             neighborhood_transitions=velocity_graph[neighborhood_sequence[i][j]]
 
             for k in range(len(neighborhood_sequence[i][j])):
@@ -172,8 +175,8 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 score[k]=np.average(cosine_similarity(avg_difference.reshape(1,-1),difference)*np.exp(neighborhood_transitions[k,:].data))
 
         elif j!=(len(neighborhood_sequence[i])-1) and j!=0: 
-            avg_difference_forward=final_cluster['trajectory_'+str(i)+'_coordinates'][j+1]-final_cluster['trajectory_'+str(i)+'_coordinates'][j]
-            avg_difference_backward=final_cluster['trajectory_'+str(i)+'_coordinates'][j]-final_cluster['trajectory_'+str(i)+'_coordinates'][j-1]
+            avg_difference_forward=final_cluster['trajectory_{}_coordinates'.format(i)][j+1]-final_cluster['trajectory_{}_coordinates'.format(i)][j]
+            avg_difference_backward=final_cluster['trajectory_{}_coordinates'.format(i)][j]-final_cluster['trajectory_{}_coordinates'.format(i)][j-1]
 
             neighborhood_transitions=velocity_graph[neighborhood_sequence[i][j]]
             for k in range(len(neighborhood_sequence[i][j])):
@@ -189,7 +192,7 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 score[k]=max(score_forward, score_backward)
 
         elif j==(len(neighborhood_sequence[i])-1):
-            avg_difference_backward=final_cluster['trajectory_'+str(i)+'_coordinates'][j]-final_cluster['trajectory_'+str(i)+'_coordinates'][j-1]
+            avg_difference_backward=final_cluster['trajectory_{}_coordinates'.format(i)][j]-final_cluster['trajectory_{}_coordinates'.format(i)][j-1]
 
             neighborhood_transitions=velocity_graph[neighborhood_sequence[i][j]]
             for k in range(len(neighborhood_sequence[i][j])):
@@ -227,10 +230,11 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
         List of the cells along the trajectory.
     all_scores:
         List of arrays with the score for each cell allong the trajectory
+    cut_off: `float` (default 0.0)
     """
     final_cluster = adata.uns['trajectories']["trajectories_coordinates"][end_point]
     directional_neighborhood_sequence = neighborhood_sequence
-    if cut_off != None:
+    if cut_off is not None:
         for i in tqdm(range(len(final_cluster))):
             cutoff_score = cut_off
             for j in range(0, len(neighborhood_sequence[i])):
@@ -245,13 +249,19 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
-    basis: str/list (default: umap)
+    basis: `str/list` (default: umap)
         The space in which the neighboring cells should be searched. If None imputed expression is used. If list, imputed expression from supplied genes is used.
-    surrogate_cell: Boolean (default:False)
+    surrogate_cell: `Boolean` (default:False)
         Whether or not a surrogate cell should be used for the neighborhood search
-    n_neighbors:  str/int/float (default:'auto')
+    fill_cluster: `Boolean` (default:True)
+        Enforce only cells in compostional clusters are assigned score.
+    n_neighbors_cluster: `integer` (Default:30)
+        Number of cells to consider for determining compositional clusters
+    cluster_freq: `float` (Default: 0.5)
+        Frequency of cell cluster cells per step to consider as compositonal cluster
+    n_neighbors:  `str/int/float` (default:'auto')
         Number of neighbors to searched along the average trajectory.
-    cut_off_percentile: float (default:0.0)
+    cut_off: `float` (default:0.0)
         Cuttof for the directionality score along the average trajectory for the cells.
     Returns
     -------
@@ -264,7 +274,7 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     
     adata.uns['trajectories']['compositional_clusters'] = {}
     
-    if basis == None:
+    if basis is None:
         map_state = adata.layers['Ms']
     elif type(basis) == list:
         map_state = adata[:, basis].layers['Ms']
@@ -272,19 +282,19 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
         map_state = adata.obsm['X_'+basis]
 
     for end_point_cluster in adata.uns['trajectories']["trajectories_coordinates"].keys():
-        if surrogate_cell==True:
-            print('Anchoring trajectories for end point  ' + end_point_cluster +' to cells in dataset and computing neighborhoods')
+        if surrogate_cell:
+            print('Anchoring trajectories for end point {} to cells in dataset and computing neighborhoods'.format(end_point_cluster))
             neighborhood_sequence, cell_sequences = surrogate_cell_neighborhood_finder(adata, end_point_cluster, map_state, mode='distances', fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster,
                                                                                     cluster_freq=cluster_freq, n_neighbors=n_neighbors, recurse_neighbors=True)
         else:
-            print('Computing neighborhoods of trajectories for end point ' + end_point_cluster +' at each step')
+            print('Computing neighborhoods of trajectories for end point {} at each step'.format(end_point_cluster))
             neighborhood_sequence = cell_neighborhood_finder(adata, map_state, end_point=end_point_cluster, neighbors_basis=neighbors_basis, fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster, cluster_freq=cluster_freq,
                                                              n_neighbors=n_neighbors)
 
-        print('Computing alignment score of cells in trajectory neighborhood w.r.t. trajectories for end point  ' + end_point_cluster)
+        print('Computing alignment score of cells in trajectory neighborhood w.r.t. trajectories for end point  {}'.format(end_point_cluster))
         all_scores=directionality_score(adata, neighborhood_sequence=neighborhood_sequence, end_point=end_point_cluster, map_state=map_state, num_cores=num_cores)
 
-        print('Removing cells below cutoff threshold from trajectories for end point  ' + end_point_cluster +' (i.e. cells neighborhood)')
+        print('Removing cells below cutoff threshold from trajectories for end point  {} (i.e. cells neighborhood)'.format(end_point_cluster))
         directional_neighborhood_sequence, all_scores = cutoff_score(adata, end_point=end_point_cluster, neighborhood_sequence=neighborhood_sequence, 
                                                                   all_scores=all_scores, cut_off=cut_off)
         cell_score.append(all_scores)       
@@ -308,9 +318,9 @@ def estimate_cell_data(adata, groupby='mean', weighted=True):
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points. Must run cytopath.cytopath before.
-    groupby:  str(default: median)
+    groupby:  `str` (default: mean)
         One of max, min, median or mean. Grouping method for determing alignment score per cell per trajectory
-    weighted: Boolean (default:False)
+    weighted: `Boolean` (default:False)
         If groupby is mean, reports mean pseduotime weighted by alignment score if true.
     """
     
