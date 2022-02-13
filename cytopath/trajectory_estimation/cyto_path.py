@@ -242,7 +242,7 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
                  all_scores[i][j] = np.delete(all_scores[i][j], np.where(all_scores[i][j]<=cutoff_score))
     return directional_neighborhood_sequence, all_scores
     
-def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.25, n_neighbors='auto', cut_off=0.0, num_cores=1):
+def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.5, n_neighbors='auto', cut_off=0.0, num_cores=1):
     """Calculates the average time step for each cell.
 
     Arguments
