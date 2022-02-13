@@ -59,10 +59,18 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with transition probabilities, end points and clustering.
-    matrix_key: Key for accessing transition matrix stored in adata.uns
-    cluster_key: Clustering of cells to use for terminal region annotation.  
+    auto_adjust: `Boolean` (default: True)
+        Whether to perform automatic adjustment of technical parameters based on dataset properties.
+    matrix_key: `string`  (default: 'T_forward')
+        Key for accessing transition matrix stored in adata.uns
+    cluster_key: `string` (default: 'louvain')
+        Clustering of cells to use for terminal region annotation.  
     max_steps: `integer` (default: 10)
         Maximum number steps of simulation.
+    min_sim_ratio: `float` (default: 0.6)
+        Required ratio of simulations obtained/required per sampling round for end point with least simulations obtained.
+    rounds_limit: `integer` (default: 10)
+        Limit on sampling rounds with an increase of simulations steps.
     traj_number: `integer`(default: 500)
         Minimum number of samples generated for each terminal region.
     sim_number: `integer`(default: 500)
