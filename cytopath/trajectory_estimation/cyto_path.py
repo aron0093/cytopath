@@ -49,7 +49,7 @@ def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster
         neighborhood_sequence.append(local_neighs)
     return neighborhood_sequence, cell_sequences
 
-def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster=30, cluster_freq = 0.5, n_neighbors='auto'):
+def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster='auto', cluster_freq = 0.3, n_neighbors='auto'):
     """Finds the nearest neighbors along the average trajectory.
     
     Arguments
@@ -60,11 +60,11 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
         End point cluster to which the trajectories belong
     fill_cluster: Boolean (default:True)
         Enforce only cells in compostional clusters are assigned score.
-    n_neighbors_cluster: `integer` (Default:30)
+    n_neighbors_cluster: `integer` (Default:'auto')
         Number of cells to consider for determining compositional clusters
-    cluster_freq: `float` (Default: 0.5)
+    cluster_freq: `float` (default: 0.3)
         Frequency of cell cluster cells per step to consider as compositonal cluster
-    n_neighbors: `` (default: 'auto')
+    n_neighbors: `integer` (default: 'auto')
         Number of cells to consider for alignment scoring.
 
     Returns
@@ -73,6 +73,11 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     """
     # Cell neighborhood of trajectory
     final_cluster=adata.uns['trajectories']["trajectories_coordinates"][end_point]
+
+    # Cluster assignment
+    if n_neighbors_cluster=='auto':
+        min_cluster_size = adata.obs[adata.uns['run_info']['cluster_key']].value_counts().min()
+        n_neighbors_cluster=int(max(min_cluster_size - min_cluster_size*cluster_freq, adata.shape[0]/200))
     
     # Find clusters composing the trajectory
     compositional_clusters = []
@@ -80,6 +85,8 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
         final_cluster_sequence=final_cluster['trajectory_{}_coordinates'.format(i)]
         for j in range(len(final_cluster_sequence)):
             cell_sequences_ = spatial.KDTree(map_state).query(final_cluster_sequence[j], k=n_neighbors_cluster)[1]
+            if type(cell_sequences_) == int:
+                cell_sequences_ = [cell_sequences_]
             compositional_clusters_ = adata.obs.loc[adata.obs.index.values[cell_sequences_], adata.uns['run_info']['cluster_key']].astype(str)
             compositional_clusters_ = compositional_clusters_.value_counts()
             compositional_clusters_ /= sum(compositional_clusters_)
@@ -242,7 +249,7 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
                  all_scores[i][j] = np.delete(all_scores[i][j], np.where(all_scores[i][j]<=cutoff_score))
     return directional_neighborhood_sequence, all_scores
     
-def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.5, n_neighbors='auto', cut_off=0.0, num_cores=1):
+def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster='auto', cluster_freq=0.3, n_neighbors='auto', cut_off=0.0, num_cores=1):
     """Calculates the average time step for each cell.
 
     Arguments
@@ -257,7 +264,7 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
         Enforce only cells in compostional clusters are assigned score.
     n_neighbors_cluster: `integer` (Default:30)
         Number of cells to consider for determining compositional clusters
-    cluster_freq: `float` (Default: 0.5)
+    cluster_freq: `float` (Default: 0.3)
         Frequency of cell cluster cells per step to consider as compositonal cluster
     n_neighbors:  `str/int/float` (default:'auto')
         Number of neighbors to searched along the average trajectory.
