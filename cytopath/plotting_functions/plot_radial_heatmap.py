@@ -32,7 +32,7 @@ def make_radial_heatmap(ax, values, num_blocks, num_rings, ring_size, empty_size
             colors = [hex_color(cmap, j) for j in values[count][0]]
 
         ax.pie([10/num_blocks]*num_blocks, radius = radius, colors = colors,
-               counterclock=False, explode=[0.05]*num_blocks) 
+               counterclock=False, explode=[0.05]*num_blocks, startangle=0) 
 
     # Empty space for donut           
     ax.pie([100], radius = empty_size, colors = ["white"])  
@@ -43,7 +43,7 @@ def make_radial_heatmap(ax, values, num_blocks, num_rings, ring_size, empty_size
 def radial_heatmap(adata, var_names, end_points=None, trajectories=None, sortby='alignment', layer='Ms', 
                    col_color_key=None, col_colors=['Blues', 'Reds', 'Greens', 'Oranges','Purples'], 
                    color_map='viridis', n_convolve=10, standard_scale=True, mode='cut',
-                   bins=100, figsize=(10, 10), ax=None):
+                   bins=100, figsize=(10, 10), ax=None, table_ax=None):
     
     # Check if data exists
     plotting_data = pd.DataFrame(np.zeros((5,5)), columns=['End point', 'Trajectory', 'Cell', 'Step', 'Allignment Score'])
@@ -140,6 +140,7 @@ def radial_heatmap(adata, var_names, end_points=None, trajectories=None, sortby=
         fig, ax = plt.subplots(figsize=figsize)
     ax = make_radial_heatmap(ax, values, bins, len(values), 8, 10)
     
-    #pd.plotting.table(ax=axs, data=table_text, colLabels=table_text.columns, colWidths=[1/4]*3, fontsize=30)
+    if table_ax:
+        pd.plotting.table(ax=table_ax, data=table_text, colLabels=table_text.columns, colWidths=[1/4]*3, fontsize=30)
 
     return ax
