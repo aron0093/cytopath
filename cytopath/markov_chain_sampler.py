@@ -245,6 +245,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     ratio_obtained = 0
 
     count = 0 # Iterate sampling runs
+    old_step_increment=0
     # Resample samples until the number of trajectories for each end point has been reached.
     while (min(traj_num) < traj_number) or (ratio_obtained < 0.1):
 
@@ -321,7 +322,16 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
                 raise ValueError('Sampling failed. Try lowering min_sim_ratio or increase rounds_limit.')
 
         if min(traj_num) < min_sim_ratio*traj_number:
-            max_steps = math.ceil(traj_number/(max(max_steps, min(traj_num))+1)) + max_steps
+
+            # Break out of klein increments
+            new_step_increment = math.ceil(traj_number/(max(max_steps, min(traj_num))+1))
+            if new_step_increment==old_step_increment:
+                new_step_increment=old_step_increment*3
+
+            # Adjust max steps
+            max_steps = new_step_increment + max_steps
+            
+            old_step_increment = new_step_increment
 
             glob_all_seq = []
             glob_prob_all_seq = []

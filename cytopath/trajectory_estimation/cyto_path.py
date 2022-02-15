@@ -77,7 +77,13 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     # Cluster assignment
     if n_neighbors_cluster=='auto':
         min_cluster_size = adata.obs[adata.uns['run_info']['cluster_key']].value_counts().min()
-        n_neighbors_cluster=int(max(min_cluster_size - min_cluster_size*cluster_freq, adata.shape[0]/200))
+        n_neighbors_cluster = min_cluster_size - min_cluster_size*cluster_freq
+        if n_neighbors_cluster < 10:
+            n_neighbors_cluster = 10
+        if adata.shape[0]/200 > 10:
+            n_neighbors_cluster = adata.shape[0]/200
+            
+        adata.uns['run_info']['n_neighbors_cluster'] = n_neighbors_cluster
     
     # Find clusters composing the trajectory
     compositional_clusters = []
@@ -116,6 +122,7 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     if n_neighbors == 'auto':
         n_neighbors = adata.obs.loc[adata.obs[adata.uns['run_info']['cluster_key']].astype(str).isin(adata.uns['trajectories']['compositional_clusters'][end_point]), 
                       adata.uns['run_info']['cluster_key']].value_counts().max()
+        adata.uns['run_info']['n_neighbors'] = n_neighbors
 
     # Create neighborhood
     neighborhood_sequence=[]
