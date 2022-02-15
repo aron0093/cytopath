@@ -2,7 +2,7 @@ from .trajectory_estimation.sample_clustering import sample_clustering
 from .trajectory_estimation.cyto_path import cytopath, estimate_cell_data
 from .trajectory_estimation.cytopath_merger import cytopath_merger
 
-def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster=30, cluster_freq=0.5,
+def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster='auto', cluster_freq=0.3,
                  groupby='mean', weighted=True, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=None, method = 'kmeans', distance = 'euclidean', num_cores=1, copy=False):
     
     adata = data.copy() if copy else data
