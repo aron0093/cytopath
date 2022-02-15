@@ -311,12 +311,14 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         ratio_obtained = np.round(sum(traj_num)/(sim_number_*len(root_cells)), 6)
         ratio_min = np.round(min(traj_num)/traj_number, 4)
 
-        if count==rounds_limit:
-            print('{} % of required simulations obtained for lagging end point {}.'.format(np.round(ratio_min*100, 2),
-                                                                                                        end_clusters_[np.argmin(traj_num)]))
-            print('{} % of simulations reached atleast one endpoint after {} rounds.'.format(np.round(ratio_obtained*100, 4), 
-                                                                                                rounds_limit))
-            raise ValueError('Sampling failed. Try lowering min_sim_ratio or increase rounds_limit.')
+        if count==rounds_limit+1:
+            if (min(traj_num) < min_sim_ratio*traj_number) or (ratio_obtained < 0.1):
+
+                print('{} % of required simulations obtained for lagging end point {}.'.format(np.round(ratio_min*100, 2),
+                                                                                                            end_clusters_[np.argmin(traj_num)]))
+                print('{} % of simulations reached atleast one endpoint after {} rounds.'.format(np.round(ratio_obtained*100, 4), 
+                                                                                                    rounds_limit))
+                raise ValueError('Sampling failed. Try lowering min_sim_ratio or increase rounds_limit.')
 
         if min(traj_num) < min_sim_ratio*traj_number:
             max_steps = math.ceil(traj_number/(max(max_steps, min(traj_num))+1)) + max_steps
