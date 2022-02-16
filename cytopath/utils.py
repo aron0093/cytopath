@@ -40,6 +40,7 @@ def read_processed(data_loc):
     return adata
 
 # https://github.com/thomasmaxwellnorman/perturbseq_demo/blob/master/perturbseq/cell_cycle.py
+# https://dynamo-release.readthedocs.io/en/v0.95.2/_modules/dynamo/preprocessing/cell_cycle.html
 
 def norm(x, **kwargs):
     """calculate the norm of an array or matrix"""
