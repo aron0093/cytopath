@@ -19,6 +19,12 @@ cytopath depends on *scvelo* to process the data and may require additional depe
 * scitkit-network
 * tqdm
 
+### Installation on Macs with M1 chip
+
+1. Use `conda` to install `pytables`: `conda install -c anaconda pytables`
+2. Install hdf5 with `brew`: `brew install hdf5 && export HDF5_DIR=$(brew --prefix hdf5)`
+3. Install `cytopath` with conda's pip: ` ./[path to conda install]/bin/pip3 install cytopath`
+
 ## Sample notebooks
 Sample notebooks can be found [here](https://github.com/aron0093/cytopath-notebooks).
 
