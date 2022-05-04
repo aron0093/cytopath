@@ -17,5 +17,5 @@ Contents
 .. toctree::
 
    installation
-   api
+   usage
    notebooks
