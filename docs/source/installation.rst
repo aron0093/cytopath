@@ -8,6 +8,9 @@ Cytopath requires Python 3.7 or later. We recommend using `Miniconda <https://do
    conda create -y -n cytopath_env python==3.8
    conda activate cytopath_env
 
+PyPI
+----
+
 Install cytopath from PyPI using pip
 
 .. code-block:: console
