@@ -29,5 +29,15 @@ Cytopath depends upon scikit-network for clustering of simulations. This depende
 .. code-block:: console
 
    pip install scikit-network==0.23.1
+   
+Jupyter notebook
+----------------
+
+To run the tutorials install jupyter notebooks.
+
+.. code-block:: console
+
+   conda install notebook
+
 
 
