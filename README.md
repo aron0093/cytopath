@@ -1,5 +1,6 @@
 ![PyPI](https://img.shields.io/pypi/v/cytopath?color=informational)
 [![Downloads](https://pepy.tech/badge/cytopath)](https://pepy.tech/project/cytopath)
+[![Documentation Status](https://readthedocs.org/projects/cytopath/badge/?version=latest)](https://cytopath.readthedocs.io/en/latest/?badge=latest)
 
 ## Cytopath
 Cytopath is a method for trajectory inference that takes advantage of transcriptional activity information from RNA velocity of single cells by defining a Markov chain model, simulation of an ensemble of possible differentiation trajectories. The preprint can be found [here](https://www.biorxiv.org/content/10.1101/2020.12.21.423801v5).
