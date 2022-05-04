@@ -82,7 +82,9 @@ Plotting
 Inference output
 ----------------
 
-The trajectories inferred by Cytopath are segmented. Cells are then aligned to these trajectory segments to determine their relative position along the trajectory (pseudotime) and relative association with multiple trajectories (cell fate). The complete inference output containing all cell-trajectory alignments is stored unde the following key,
+The trajectories inferred by Cytopath are segmented. Cells are then aligned to these trajectory segments to determine their relative position along the trajectory (pseudotime) and relative association with multiple trajectories (cell fate). 
+
+The complete inference output containing all cell-trajectory alignments is stored under the following key,
 
 .. code-block:: console
    
