@@ -1,5 +1,9 @@
 Cytopath: Simulation based inference of differentiation trajectories from RNA velocity fields
-===================================
+=============================================================================================
+
+.. note::
+
+   This project is under active development.
 
 Cytopath is a method for trajectory inference that takes advantage of transcriptional activity information from RNA velocity of single cells by defining a Markov chain model, simulating possible differentiation paths and inferring an ensemble trajectory. The preprint can be found `here <https://www.biorxiv.org/content/10.1101/2020.12.21.423801v5>`_.
 
@@ -7,15 +11,4 @@ Cytopath can infer trajectories with or without root/terminal state supervision.
 
 Check out the :doc:`notebooks` section for demonstration of cytopath on publicly available datasets.
 
-.. note::
-
-   This project is under active development.
-
-Contents
---------
-
-.. toctree::
-
-   installation
-   usage
-   notebooks
+.. image:: https://user-images.githubusercontent.com/25486108/166925895-25fde8d1-c25f-4927-93ad-0331871ef319.png
