@@ -14,3 +14,9 @@ Check out the :doc:`notebooks` section for demonstration of cytopath on publicly
 .. image:: https://user-images.githubusercontent.com/25486108/166925895-25fde8d1-c25f-4927-93ad-0331871ef319.png
 
 .. toctree::
+   :maxdepth: 1
+   :hidden:
+   
+   installation
+   usage
+   notebooks
