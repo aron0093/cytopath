@@ -1,10 +1,14 @@
 import numpy as np
 import pandas as pd
-from tqdm.auto import tqdm
 from scipy import spatial
+
 from scvelo.preprocessing.neighbors import get_connectivities
-from sklearn.metrics.pairwise import cosine_similarity
+
 from joblib import Parallel, delayed
+
+from tqdm.auto import tqdm
+
+from ..utils import cosine_similarity
 
 def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster=True, n_neighbors=30, cluster_freq=0.1, mode='distances', recurse_neighbors=True):
     """Finds surrogate cell and uses the scvelo neighborhood graph to finds its recursive neighbors. 
@@ -183,10 +187,10 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 cell_jumps=neighborhood_transitions[k,:].nonzero()[1]
                 origin_cell=map_state[neighborhood_sequence[i][j][k]]
                 end_cells=map_state[cell_jumps]
-                difference=origin_cell-end_cells
+                difference= end_cells - origin_cell#origin_cell-end_cells
 
                 # Score based on alignment and distance 
-                score[k]=np.average(cosine_similarity(avg_difference.reshape(1,-1),difference)*np.exp(neighborhood_transitions[k,:].data))
+                score[k]=np.average(cosine_similarity(avg_difference,difference)*np.exp(neighborhood_transitions[k,:].data))
 
         elif j!=(len(neighborhood_sequence[i])-1) and j!=0: 
             avg_difference_forward=final_cluster['trajectory_{}_coordinates'.format(i)][j+1]-final_cluster['trajectory_{}_coordinates'.format(i)][j]
@@ -197,11 +201,11 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 cell_jumps=neighborhood_transitions[k,:].nonzero()[1]
                 origin_cell=map_state[neighborhood_sequence[i][j][k]]
                 end_cells=map_state[cell_jumps]
-                difference=origin_cell-end_cells
+                difference=end_cells - origin_cell
 
                 # Score based on alignment and distance 
-                score_forward=np.average(cosine_similarity(avg_difference_forward.reshape(1,-1), difference)*np.exp(neighborhood_transitions[k,:].data))
-                score_backward=np.average(cosine_similarity(avg_difference_backward.reshape(1,-1), difference)*np.exp(neighborhood_transitions[k,:].data))
+                score_forward=np.average(cosine_similarity(avg_difference_forward, difference)*np.exp(neighborhood_transitions[k,:].data))
+                score_backward=np.average(cosine_similarity(avg_difference_backward, difference)*np.exp(neighborhood_transitions[k,:].data))
                 
                 score[k]=max(score_forward, score_backward)
 
@@ -213,10 +217,10 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 cell_jumps=neighborhood_transitions[k,:].nonzero()[1]
                 origin_cell=map_state[neighborhood_sequence[i][j][k]]
                 end_cells=map_state[cell_jumps]
-                difference=origin_cell-end_cells
+                difference=end_cells - origin_cell
 
                 # Score based on alignment and distance  
-                score_backward=np.average(cosine_similarity(avg_difference_backward.reshape(1,-1), difference)*np.exp(neighborhood_transitions[k,:].data))
+                score_backward=np.average(cosine_similarity(avg_difference_backward, difference)*np.exp(neighborhood_transitions[k,:].data))
                 score[k]=score_backward
 
         return (j, score)

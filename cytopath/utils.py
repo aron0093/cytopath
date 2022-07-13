@@ -1,43 +1,40 @@
 import anndata
-import pandas as pd
 import numpy as np
-from collections import OrderedDict
+import pandas as pd
 from scipy import sparse
+
+from collections import OrderedDict
 from typing import Union
 
+import numba
 
-def read_processed(data_loc):
+# Cosine similarity function
+@numba.jit(nopython=True, fastmath=True)
+def cosine_similarity_numba(u: np.array, v: np.array):
+    assert(u.shape[0] == v.shape[0])
 
-    adata = anndata.read(data_loc)
+    uv = 0
+    uu = 0
+    vv = 0
+    for j in range(u.shape[0]):
+        uv += u[j]*v[j]
+        uu += u[j]*u[j]
+        vv += v[j]*v[j]
+    cos_theta = 1
+    if uu!=0 and vv!=0:
+        cos_theta = uv/np.sqrt(uu*vv)
 
-    try:
-        if type(adata.uns['run_info']['end_point_clusters']) == str:
-            adata.uns['run_info']['end_point_clusters'] = [adata.uns['run_info']['end_point_clusters']]
-    except:
-        pass
+    return cos_theta
+
+@numba.jit(nopython=True, fastmath=True)
+def cosine_similarity(u: np.array, v: np.array):
+    #assert(u.shape[0] == v.shape[0])
+    out = np.empty(v.shape[0])
     
-    try:
-        for key in adata.uns['run_info']['trajectories_sample_counts'].keys():
-            if type(adata.uns['run_info']['trajectories_sample_counts'][key]) != list:
-                adata.uns['run_info']['trajectories_sample_counts'][key] = [adata.uns['run_info']['trajectories_sample_counts'][key]]
-    except:
-        pass
-
-    try:
-        adata.uns['trajectories']['cells_along_trajectories_each_step'] = \
-        adata.uns['trajectories']['cells_along_trajectories_each_step'].astype([('End point', 'U8'), ('Trajectory', int), ('Step', int), ('Cell', int), 
-                                                                                ('Allignment Score', float)])
-    except:
-        pass
-
-    try:
-        adata.uns['trajectories']['cells_along_trajectories_each_step_merged'] = \
-        adata.uns['trajectories']['cells_along_trajectories_each_step_merged'].astype([('End point', 'U8'), ('Trajectory', int), ('Step', int), ('Cell', int), 
-                                                                                ('Allignment Score', float)])
-    except:
-        pass
-
-    return adata
+    for i in range(out.shape[0]):
+        out[i] = cosine_similarity_numba(u, v[i,:])
+        
+    return out
 
 # https://github.com/thomasmaxwellnorman/perturbseq_demo/blob/master/perturbseq/cell_cycle.py
 # https://dynamo-release.readthedocs.io/en/v0.95.2/_modules/dynamo/preprocessing/cell_cycle.html
@@ -121,7 +118,6 @@ def group_corr(adata: anndata.AnnData, layer: Union[str, None], gene_list: list)
 
     # get back to gene names again
     return np.array(adata.var.index[intersect_genes]), cor.flatten()
-
 
 def refine_gene_list(
     adata: anndata.AnnData,
