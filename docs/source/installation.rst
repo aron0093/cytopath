@@ -26,7 +26,7 @@ Direct dependencies of Cytopath will be installed automatically in the step abov
 
    conda install -c conda-forge python-igraph louvain
    
-Cytopath depends upon scikit-network for clustering of simulations. This dependency will be replaced in a future version. Currently, we reccomend using the following version.
+Cytopath depends upon scikit-network for clustering of simulations. This dependency has been replaced in the `development version <https://github.com/aron0093/cytopath/tree/development>`_. Currently, we reccomend using the following version.
 
 
 .. code-block:: console
