@@ -1,10 +1,11 @@
 import math
 import numpy as np
-import scvelo
 from scipy import sparse
-from tqdm.auto import tqdm
+
 from joblib import Parallel, delayed
 import warnings
+
+from tqdm.auto import tqdm
 
 def matrix_prep(trans_matrix):
 
@@ -54,7 +55,6 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
                 normalize=False, unique=True, num_cores=1, copy=False):
     
     """Markov sampling of cell sequences starting from defined root cells to defined terminal regions based on a cell-cell transition probability matrix.
-
     Arguments
     ---------
     adata: :class:`~anndata.AnnData`
@@ -204,9 +204,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
                 adata.obs.iloc[end_points, adata.obs.columns.get_loc('updated_'+cluster_key)] = 'End_'+ end_points_adata.obs['louvain'].astype(str).values
                 
                 del end_points_adata
-
                 cluster_key = 'updated_'+cluster_key
-
                 clusters = adata.obs[cluster_key].astype(str).values
                 adata.uns['run_info'] = {'cluster_key': cluster_key}
                 '''
@@ -227,7 +225,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         # Initial number of simulations
         traj_number = math.ceil(np.log10(adata.shape[0])*500) # Dataset size 
         print('Number of required simulations per end point (traj_number) set to {}'.format(traj_number))
-        sim_number = traj_number*len(end_clusters_)  # number of terminal regions  
+        sim_number = traj_number*len(end_clusters_)*len(root_cells)  # scale number of simulations by number of terminal regions and root cells
         print('Number of initial simulations (sim_number) set to {}'.format(sim_number))
 
         # Initial number of simulation steps
@@ -238,7 +236,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     glob_all_seq = []
     glob_prob_all_seq = []
     glob_cluster_seq_all = []
-    sim_number_ = sim_number
+    sim_number_ = max(int(sim_number/len(root_cells)),1) # Number of simulations can't be less than 1
 
     # Define variables for conditional
     traj_num = [0]
