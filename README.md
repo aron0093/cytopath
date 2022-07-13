@@ -13,14 +13,15 @@ Cytopath can infer trajectories with or without root/terminal state supervision.
 cytopath depends on *scvelo* to process the data and may require additional dependencies of scvelo to be installed manually. Other dependencies are the following:
 
 * python>=3.7
-* numpy>=1.20.0
+* numpy
 * scipy
 * anndata
 * scvelo>=0.1.25
 * joblib
 * fastdtw
 * hausdorff
-* scitkit-network
+* networkit
+* numba
 * tqdm
 
 ## Documentation
