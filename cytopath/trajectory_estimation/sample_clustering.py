@@ -266,30 +266,6 @@ def sample_clustering(adata, basis="umap", smoothing=False, cluster_num=None, me
     adata.uns["trajectories_2"]: Dictionary of the average trajectories
     adata.uns["trajectories"]: Long format of the average trajectories
     adata.uns["trajectories_count"]: Number of trajectories contributing to each cluster
-   
-
-        Arguments
-    ---------
-    adata: :class:`~anndata.AnnData`
-        Annotated data matrix with end points.
-    basis: `str/list` (default: umap)
-        The space in which the neighboring cells should be searched. If None imputed expression is used. If list, imputed expression from supplied genes is used.
-    surrogate_cell: `Boolean` (default:False)
-        Whether or not a surrogate cell should be used for the neighborhood search
-    fill_cluster: `Boolean` (default:True)
-        Enforce only cells in compostional clusters are assigned score.
-    n_neighbors_cluster: `integer` (Default:30)
-        Number of cells to consider for determining compositional clusters
-    cluster_freq: `float` (Default: 0.3)
-        Frequency of cell cluster cells per step to consider as compositonal cluster
-    n_neighbors:  `str/int/float` (default:'auto')
-        Number of neighbors to searched along the average trajectory.
-    cut_off: `float` (default:0.0)
-        Cuttof for the directionality score along the average trajectory for the cells.
-    Returns
-    -------
-    Returns adata.uns['trajectories']["cells_along_trajectories"]: List of arrays, which denote the average step for cell.
-    adata.uns['trajectories']["cells_along_trajectories_each_step"]: List of arrays containing the cell indexes for each step
     """
     
     # Check if samples has been run and information is complete
