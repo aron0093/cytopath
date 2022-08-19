@@ -20,7 +20,8 @@ setup(
           'fastdtw',
           'hausdorff',
           'tqdm',
-	  'scikit-network'
+	  'networkit',
+	  'numba'
       ],
   classifiers=[
     'Development Status :: 3 - Alpha',
