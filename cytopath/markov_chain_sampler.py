@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from scipy import sparse
+from scipy.spatial.distance import cosine
 
 from joblib import Parallel, delayed
 import warnings
@@ -49,6 +50,41 @@ def markov_sim(j, sim_number, max_steps, root_cells, clusters, trans_matrix, tra
             prob_state[k, i-1] = trans_matrix[currState[k, i-1], currState[k, i]]
             clust_state[k, i] = clusters[currState[k, i]]
     return currState, np.sum(-np.log(prob_state), axis=1), clust_state
+
+def check_convergence_criteria(eps_history, tol=1e-5):
+    differences = [abs(eps_history[i+1]-eps_history[i]) for i in range(len(eps_history)-1)]
+    # return first element that is under tolerance threshold
+    try:
+        return 1 + len(differences) - next(i for i, j in enumerate(differences[::-1]) if j > tol)
+    except:
+        return None
+
+def iterate_state_probability(adata, matrix_key='T_forward', init=None, stationary=None, max_iter=1000, tol=1e-5):
+
+    # Iterate state probabilities
+    state_history_max_iter = np.empty((max_iter, adata.shape[0]))
+    eps_history = np.empty(max_iter)
+
+    # Iteratively calculate distribution
+    current_state_probability = init
+    for i in tqdm(range(max_iter), desc='Iterating state probability distributions'):
+        
+        state_history_max_iter[i] = current_state_probability
+        current_state_probability = sparse.csr_matrix.dot(current_state_probability, adata.uns[matrix_key])
+        
+        eps = cosine(current_state_probability, stationary)
+        eps_history[i] = eps
+
+    # Check if iterations have converged w.r.t. tolerance criteria
+    convergence_check = check_convergence_criteria(eps_history, tol=tol)
+    if isinstance(convergence_check, int) and convergence_check < max_iter:
+        print('Tolerance reached after {} iterations of {}.'.format(convergence_check, max_iter))
+    else:
+        print('Max number ({}) of iterations reached.'.format(max_iter))
+        convergence_check = max_iter
+    
+    state_history = state_history_max_iter[:convergence_check]
+    return state_history, state_history_max_iter, convergence_check
 
 def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=500, sim_number=500,
                 end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=3,
@@ -229,7 +265,10 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         print('Number of initial simulations (sim_number) set to {}'.format(sim_number))
 
         # Initial number of simulation steps
-        max_steps = math.ceil(np.log10(adata.shape[0])*5) # 10, 15, 20 steps for a dataset of 100, 1000, 10000 cells
+        max_steps = iterate_state_probability(adata, matrix_key=matrix_key, 
+                                              init = (adata.obs['root_cells']/adata.obs['root_cells'].sum()).values, 
+                                              stationary=(adata.obs['end_points']/adata.obs['end_points'].sum()).values, 
+                                              max_iter=1000, tol=1e-5)[-1]
         print('Number of initial simulation steps (max_steps) set to {}'.format(max_steps)) 
 
     # Initialize all empty lists
@@ -318,40 +357,6 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
                 print('{} % of simulations reached atleast one endpoint after {} rounds.'.format(np.round(ratio_obtained*100, 4), 
                                                                                                     rounds_limit))
                 raise ValueError('Sampling failed. Try lowering min_sim_ratio or increase rounds_limit.')
-
-        if min(traj_num) < min_sim_ratio*traj_number:
-
-            # Break out of klein increments
-            new_step_increment = math.ceil(traj_number/(max(max_steps, min(traj_num))+1))
-            if new_step_increment==old_step_increment:
-                new_step_increment=old_step_increment*3
-
-            # Adjust max steps
-            max_steps = new_step_increment + max_steps
-            
-            old_step_increment = new_step_increment
-
-            glob_all_seq = []
-            glob_prob_all_seq = []
-            glob_cluster_seq_all = []
-
-            print('{} % of required simulations obtained for lagging end point {}. This is less than min_sim_ratio.'.format(np.round(ratio_min*100, 2),
-                                                                                                        end_clusters_[np.argmin(traj_num)]))
-            print('{} % of simulations reached atleast one endpoint. Increasing number of simulation steps to {}.'.format(np.round(ratio_obtained*100, 4), max_steps))
-            continue
-
-        #TODO: Better heuristic for this
-        if ratio_obtained < 0.1:
-            max_steps = 2*max_steps
-
-            glob_all_seq = []
-            glob_prob_all_seq = []
-            glob_cluster_seq_all = []
-
-            print('{} % of required simulations obtained for lagging end point {}.'.format(np.round(ratio_min*100, 2),
-                                                                                                        end_clusters_[np.argmin(traj_num)]))
-            print('{} % of simulations reached atleast one endpoint. Increasing number of simulation steps to {}.'.format(np.round(ratio_obtained*100, 4), max_steps))
-            continue
 
         # Alternatively perform more sampling (Feature active if min_sim_ratio<1)    
         if min(traj_num) < traj_number:
