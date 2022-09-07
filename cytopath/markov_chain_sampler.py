@@ -87,7 +87,7 @@ def iterate_state_probability(adata, matrix_key='T_forward', init=None, stationa
     return state_history, state_history_max_iter, convergence_check
 
 def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=500, sim_number=500,
-                end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=3,
+                end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=3, tol=1e-3,
                 normalize=False, unique=True, num_cores=1, copy=False):
     
     """Markov sampling of cell sequences starting from defined root cells to defined terminal regions based on a cell-cell transition probability matrix.
@@ -261,14 +261,14 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         # Initial number of simulations
         traj_number = math.ceil(np.log10(adata.shape[0])*500) # Dataset size 
         print('Number of required simulations per end point (traj_number) set to {}'.format(traj_number))
-        sim_number = traj_number*len(end_clusters_)*len(root_cells)  # scale number of simulations by number of terminal regions and root cells
+        sim_number = math.ceil(traj_number*len(end_clusters_)*np.log2(len(root_cells)+1)) # scale number of simulations by number of terminal regions and root cells
         print('Number of initial simulations (sim_number) set to {}'.format(sim_number))
 
         # Initial number of simulation steps
         max_steps = iterate_state_probability(adata, matrix_key=matrix_key, 
                                               init = (adata.obs['root_cells']/adata.obs['root_cells'].sum()).values, 
                                               stationary=(adata.obs['end_points']/adata.obs['end_points'].sum()).values, 
-                                              max_iter=1000, tol=1e-5)[-1]
+                                              max_iter=1000, tol=tol)[-1]
         print('Number of initial simulation steps (max_steps) set to {}'.format(max_steps)) 
 
     # Initialize all empty lists
@@ -289,6 +289,8 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         print()
         print("Sampling round: {}".format(count))
         count+=1
+
+        sim_number_ *= 2
 
         # Parallelisation over the cells: 1 Thread for the samples of each cell.
         if len(root_cells) == 1:
