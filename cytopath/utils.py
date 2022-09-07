@@ -8,6 +8,8 @@ from typing import Union
 
 import numba
 
+from .markov_chain_sampler import sampling
+
 # Cosine similarity function
 @numba.jit(nopython=True, fastmath=True)
 def cosine_similarity_numba(u: np.array, v: np.array):
@@ -35,6 +37,68 @@ def cosine_similarity(u: np.array, v: np.array):
         out[i] = cosine_similarity_numba(u, v[i,:])
         
     return out
+
+# Function to generate terminal state frequency using undirected sinulations
+def undirected_simulations(data, matrix_key = 'T_forward', max_steps=10, sim_number=None,
+                           normalize=False, unique=True, num_cores=1, copy=False):
+
+    """Markov sampling of cell sequences starting from all cells based on a cell-cell transition probability matrix.
+    Arguments
+    ---------
+    adata: :class:`~anndata.AnnData`
+        Annotated data matrix with transition probabilities, end points and clustering.
+    matrix_key: `string`  (default: 'T_forward')
+        Key for accessing transition matrix stored in adata.uns
+    max_steps: `integer` (default: 10)
+        Maximum number steps of simulation.
+    sim_number: `integer`(default: None)
+        Number of simulations to generate. If less than number of cells, then a subsampling of cells is used as root states. By default equals number of cells.
+    normalize: 'Boolean' (default: False)
+        Toggle row sum normalization.
+    unique: 'Boolean' (default:True)
+        Only keep unique samples.
+    num_cores: 'integer' (default:1)
+        Number of cpu cores to use.
+    copy: 'Boolean' (default: False)
+        Create a copy of the anndata object or work inplace.
+    
+    Returns
+    -------
+    adata.uns["undirected_samples"]["cell_sequences"]: List of arrays containing the index of the cells in a sequence.
+    adata.uns["undirected_samples"]["transition_score"]: List with all of the transition probabilities.
+    adata.uns["undirected_samples"]["cluster_sequences"]: The sequence of clusters to which the cells belong.
+    adata.obs['log_terminal_state_freq']: Frequency of being terminal state of a simulation for each cell.
+    """
+    
+    adata = data.copy()
+    
+    adata.obs['undirected_sim_included'] = '1'
+    adata.obs['undirected_sim_included'] = adata.obs['undirected_sim_included'].astype('category')
+
+    if sim_number is None:
+        sim_number=adata.shape[0]
+
+    if sim_number < adata.shape[0]:
+        root_cells = np.random.choice(np.arange(adata.shape[0]), size=sim_number, replace=False)
+    else:
+        root_cells = np.arange(adata.shape[0])
+
+    sampling(adata, matrix_key=matrix_key, normalize=normalize, unique=unique, 
+             root_cells=root_cells, end_points=np.arange(adata.shape[0]), 
+             cluster_key='undirected_sim_included', auto_adjust=False, min_clusters=1,
+             sim_number=sim_number, traj_number=sim_number, max_steps=max_steps, 
+             num_cores=num_cores)
+
+    cells, counts = np.unique(adata.uns['samples']['cell_sequences'][:, -1], return_counts=True)
+
+    adata.obs['log_terminal_state_freq'] = float(np.nan)
+    adata.obs.iloc[cells, adata.obs.columns.get_loc('log_terminal_state_freq')] = np.log1p(counts/sim_number)
+
+    data = data.copy() if copy else data
+    data.obs['log_terminal_state_freq'] = adata.obs['log_terminal_state_freq']
+    data.uns['undirected_samples'] = adata.uns['samples']
+
+    if copy: return data
 
 # https://github.com/thomasmaxwellnorman/perturbseq_demo/blob/master/perturbseq/cell_cycle.py
 # https://dynamo-release.readthedocs.io/en/v0.95.2/_modules/dynamo/preprocessing/cell_cycle.html
