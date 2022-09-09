@@ -1,7 +1,7 @@
 import anndata
 import numpy as np
 import pandas as pd
-from scipy import sparse
+from scipy import sparse, stats
 
 from collections import OrderedDict
 from typing import Union
@@ -99,6 +99,15 @@ def undirected_simulations(data, matrix_key = 'T_forward', max_steps=10, sim_num
     data.uns['undirected_samples'] = adata.uns['samples']
 
     if copy: return data
+
+def differentiation_potential(data, scale=True, copy=False):
+
+    adata = adata.copy() if copy else data
+    
+    adata.obs['differentiation_potential'] = np.apply_along_axis(stats.entropy, 1, adata.uns['trajectories']['cell_fate_probability'].T)
+    if scale: adata.obs['differentiation_potential'] = adata.obs['differentiation_potential']/adata.obs['differentiation_potential'].max()
+
+    if copy: return adata
 
 # https://github.com/thomasmaxwellnorman/perturbseq_demo/blob/master/perturbseq/cell_cycle.py
 # https://dynamo-release.readthedocs.io/en/v0.95.2/_modules/dynamo/preprocessing/cell_cycle.html
