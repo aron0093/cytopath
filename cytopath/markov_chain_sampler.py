@@ -125,6 +125,8 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         Cluster IDs to be considered root states. Precendence over root_state_probability.
     min_clusters: `integer` (default:3)
         Minium number of clusters covered by each simulation. (cluster_key)
+    tol: `float` (default:1e-3)
+        Convergence criteria for Markov sampling.
     normalize: 'Boolean' (default: False)
         Toggle row sum normalization.
     unique: 'Boolean' (default:True)
