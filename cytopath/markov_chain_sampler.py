@@ -261,7 +261,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         print('Adjusting simulation parameters based on dataset properties. Set auto_adjust=False if this is unwanted.')
 
         # Initial number of simulations
-        traj_number = math.ceil(np.log10(adata.shape[0])*500) # Dataset size 
+        traj_number = math.ceil(np.log10(adata.shape[0])*traj_number) # Dataset size 
         print('Number of required simulations per end point (traj_number) set to {}'.format(traj_number))
         sim_number = math.ceil(traj_number*len(end_clusters_)*np.log2(len(root_cells)+1)) # scale number of simulations by number of terminal regions and root cells
         print('Number of initial simulations (sim_number) set to {}'.format(sim_number))
