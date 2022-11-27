@@ -284,7 +284,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     count = 0 # Iterate sampling runs
     old_step_increment=0
     # Resample samples until the number of trajectories for each end point has been reached.
-    while (min(traj_num) < traj_number) or (ratio_obtained < 0.1):
+    while (min(traj_num) < traj_number): # or (ratio_obtained < 0.1)
 
         print()
         print("Sampling round: {}".format(count))
