@@ -21,6 +21,7 @@ setup(
           'hausdorff',
           'tqdm',
 	  'networkit',
+	  'tabulate',
 	  'numba'
       ],
   classifiers=[
