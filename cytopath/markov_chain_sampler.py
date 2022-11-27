@@ -86,7 +86,7 @@ def iterate_state_probability(adata, matrix_key='T_forward', init=None, stationa
     state_history = state_history_max_iter[:convergence_check]
     return state_history, state_history_max_iter, convergence_check
 
-def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=500, sim_number=500,
+def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=50, sim_number=500,
                 end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=3, tol=1e-3,
                 normalize=False, unique=True, num_cores=1, copy=False):
     
@@ -270,7 +270,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         max_steps = iterate_state_probability(adata, matrix_key=matrix_key, 
                                               init = (adata.obs['root_cells']/adata.obs['root_cells'].sum()).values, 
                                               stationary=(adata.obs['end_points']/adata.obs['end_points'].sum()).values, 
-                                              max_iter=1000, tol=tol)[-1]
+                                              max_iter=200, tol=tol)[-1]
         print('Number of initial simulation steps (max_steps) set to {}'.format(max_steps)) 
 
     # Initialize all empty lists
