@@ -6,8 +6,8 @@ project = 'Cytopath'
 copyright = '2022, Revant Gupta'
 author = 'Revant Gupta'
 
-release = '0.1.8'
-version = '0.1.8post1'
+release = '0.1.9'
+version = '0.1.9'
 
 # -- General configuration
 
