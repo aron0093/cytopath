@@ -13,6 +13,7 @@ setup(
   keywords = ['Trajectory Inference', 'single-cell RNA sequencing', 'RNA velocity'],
   install_requires=[
           'numpy>=1.20.0',
+	  'pandas==1.4.4',
           'scipy',
           'anndata',
           'scvelo>=0.1.25',

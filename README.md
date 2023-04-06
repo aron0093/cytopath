@@ -17,6 +17,7 @@ cytopath depends on *scvelo* to process the data and may require additional depe
 * python>=3.7
 * numpy
 * scipy
+* pandas==1.4.4
 * anndata
 * scvelo>=0.1.25
 * joblib
