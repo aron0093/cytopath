@@ -176,7 +176,7 @@ def clustering(adata, sequence_coordinates, cluster_chains, cluster_strength, cl
         clusters = list(cluster.getSubsetIds())
     else:
         if method=='kmeans':
-            cluster_labels = KMeans(n_clusters=n_clusters, precompute_distances=True).fit_predict(average_cl_d_affinity)
+            cluster_labels = KMeans(n_clusters=n_clusters, precompute_distances=True).fit_predict(average_cl_d)
             clusters=np.unique(cluster_labels)
         
     all_trajectories_labels = np.zeros((len(cluster_labels_1)))
