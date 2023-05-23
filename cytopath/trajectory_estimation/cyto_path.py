@@ -85,7 +85,7 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
         if n_neighbors_cluster < 10:
             n_neighbors_cluster = 10
         if adata.shape[0]/200 > 10:
-            n_neighbors_cluster = adata.shape[0]/200
+            n_neighbors_cluster = int(adata.shape[0]/200)
             
         adata.uns['run_info']['n_neighbors_cluster'] = n_neighbors_cluster
     
