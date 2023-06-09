@@ -81,11 +81,11 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     # Cluster assignment
     if n_neighbors_cluster=='auto':
         min_cluster_size = adata.obs[adata.uns['run_info']['cluster_key']].value_counts().min()
-        n_neighbors_cluster = np.ceil(min_cluster_size - min_cluster_size*cluster_freq)
+        n_neighbors_cluster = int(np.ceil(min_cluster_size - min_cluster_size*cluster_freq))
         if n_neighbors_cluster < 10:
             n_neighbors_cluster = 10
         if adata.shape[0]/200 > 10:
-            n_neighbors_cluster = int(adata.shape[0]/200)
+            n_neighbors_cluster = int(np.ceil(adata.shape[0]/200))
             
         adata.uns['run_info']['n_neighbors_cluster'] = n_neighbors_cluster
     
