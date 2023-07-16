@@ -5,12 +5,12 @@ from scipy import spatial
 from scvelo.preprocessing.neighbors import get_connectivities
 
 from joblib import Parallel, delayed
-
 from tqdm.auto import tqdm
 
 from ..utils import cosine_similarity
 
-def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster=True, n_neighbors=30, cluster_freq=0.1, mode='distances', recurse_neighbors=True):
+def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster=True, n_neighbors=30, 
+                                       cluster_freq=0.05, mode='distances', recurse_neighbors=True):
     """Finds surrogate cell and uses the scvelo neighborhood graph to finds its recursive neighbors. 
        Applicable when mean is used to compute trajectory coordinates. Default is median.
     
@@ -51,9 +51,10 @@ def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster
                 raise NotImplementedError('Fill cluster not implemented.')
 
         neighborhood_sequence.append(local_neighs)
-    return neighborhood_sequence, cell_sequences
+    return neighborhood_sequence
 
-def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster='auto', cluster_freq = 0.3, n_neighbors='auto'):
+def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca', fill_cluster=True, 
+                             n_neighbors_cluster='auto', cluster_freq = 0.05, n_neighbors='auto'):
     """Finds the nearest neighbors along the average trajectory.
     
     Arguments
@@ -80,12 +81,12 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
 
     # Cluster assignment
     if n_neighbors_cluster=='auto':
-        min_cluster_size = adata.obs[adata.uns['run_info']['cluster_key']].value_counts().min()
-        n_neighbors_cluster = int(np.ceil(min_cluster_size - min_cluster_size*cluster_freq))
+        # mean_cluster_size = adata.obs[adata.uns['run_info']['cluster_key']].value_counts().mean()
+        # n_neighbors_cluster = int(np.ceil(mean_cluster_size*cluster_freq))
+        # TODO: Adaptive width search 
+        n_neighbors_cluster = int(adata.shape[0]/100)
         if n_neighbors_cluster < 10:
             n_neighbors_cluster = 10
-        if adata.shape[0]/200 > 10:
-            n_neighbors_cluster = int(np.ceil(adata.shape[0]/200))
             
         adata.uns['run_info']['n_neighbors_cluster'] = n_neighbors_cluster
     
@@ -256,11 +257,13 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
         for i in tqdm(range(len(final_cluster))):
             cutoff_score = cut_off
             for j in range(0, len(neighborhood_sequence[i])):
-                 directional_neighborhood_sequence[i][j] = np.delete(directional_neighborhood_sequence[i][j], np.where(all_scores[i][j]<=cutoff_score))
+                 directional_neighborhood_sequence[i][j] = np.delete(directional_neighborhood_sequence[i][j], 
+                                                                     np.where(all_scores[i][j]<=cutoff_score))
                  all_scores[i][j] = np.delete(all_scores[i][j], np.where(all_scores[i][j]<=cutoff_score))
     return directional_neighborhood_sequence, all_scores
     
-def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, n_neighbors_cluster='auto', cluster_freq=0.3, n_neighbors='auto', cut_off=0.0, num_cores=1):
+def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, fill_cluster=True, 
+             n_neighbors_cluster='auto', cluster_freq=0.05, n_neighbors='auto', cut_off=0.0, num_cores=1):
     """Calculates the average time step for each cell.
 
     Arguments
@@ -268,14 +271,15 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
     basis: `str/list` (default: umap)
-        The space in which the neighboring cells should be searched. If None imputed expression is used. If list, imputed expression from supplied genes is used.
+        The space in which the neighboring cells should be searched. If None imputed expression is used. 
+        If list, imputed expression from supplied genes is used.
     surrogate_cell: `Boolean` (default:False)
         Whether or not a surrogate cell should be used for the neighborhood search
     fill_cluster: `Boolean` (default:True)
         Enforce only cells in compostional clusters are assigned score.
     n_neighbors_cluster: `integer` (Default:30)
         Number of cells to consider for determining compositional clusters
-    cluster_freq: `float` (Default: 0.3)
+    cluster_freq: `float` (Default: 0.05)
         Frequency of cell cluster cells per step to consider as compositonal cluster
     n_neighbors:  `str/int/float` (default:'auto')
         Number of neighbors to searched along the average trajectory.
@@ -287,7 +291,6 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     adata.uns['trajectories']["cells_along_trajectories_each_step"]: List of arrays containing the cell indexes for each step
     """
     cell_score=[]
-    step_ordering_trajectory=[]
     cells_trajectory=[]
     
     adata.uns['trajectories']['compositional_clusters'] = {}
@@ -302,12 +305,15 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     for end_point_cluster in adata.uns['trajectories']["trajectories_coordinates"].keys():
         if surrogate_cell:
             print('Anchoring trajectories for end point {} to cells in dataset and computing neighborhoods'.format(end_point_cluster))
-            neighborhood_sequence, cell_sequences = surrogate_cell_neighborhood_finder(adata, end_point_cluster, map_state, mode='distances', fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster,
-                                                                                    cluster_freq=cluster_freq, n_neighbors=n_neighbors, recurse_neighbors=True)
+            neighborhood_sequence = surrogate_cell_neighborhood_finder(adata, end_point_cluster, map_state, mode='distances', 
+                                                                       fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster, 
+                                                                       cluster_freq=cluster_freq, n_neighbors=n_neighbors, 
+                                                                       recurse_neighbors=True)
         else:
             print('Computing neighborhoods of trajectories for end point {} at each step'.format(end_point_cluster))
-            neighborhood_sequence = cell_neighborhood_finder(adata, map_state, end_point=end_point_cluster, neighbors_basis=neighbors_basis, fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster, cluster_freq=cluster_freq,
-                                                             n_neighbors=n_neighbors)
+            neighborhood_sequence = cell_neighborhood_finder(adata, map_state, end_point=end_point_cluster, neighbors_basis=neighbors_basis, 
+                                                             fill_cluster=fill_cluster, n_neighbors_cluster=n_neighbors_cluster, 
+                                                             cluster_freq=cluster_freq, n_neighbors=n_neighbors)
 
         print('Computing alignment score of cells in trajectory neighborhood w.r.t. trajectories for end point  {}'.format(end_point_cluster))
         all_scores=directionality_score(adata, neighborhood_sequence=neighborhood_sequence, end_point=end_point_cluster, map_state=map_state, num_cores=num_cores)
@@ -381,13 +387,13 @@ def estimate_cell_data(adata, groupby='mean', weighted=True):
 
     adata.uns['trajectories']['cells_along_trajectories'] = cytopath_data_.to_records()
     
-    adata.uns['trajectories']['step_time'] = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns=['End point', 'Trajectory'], 
-                                                                                                                                    values='Step'), 
-                                                                                                 left_index=True, right_index=True, how='left').T.values
+    step_time_df = cytopath_data_.reset_index().pivot(index='Cell', columns=['End point', 'Trajectory'], values='Step')
+    step_time_df.columns = step_time_df.columns.to_flat_index()
+    adata.uns['trajectories']['step_time'] = pd.DataFrame(index=np.arange(adata.shape[0])).merge(step_time_df, left_index=True, right_index=True, how='left').T.values
     
-    
-    cell_fate_prob = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cytopath_data_.reset_index().pivot(index='Cell', columns=['End point', 'Trajectory'], values='Allignment Score'), 
-                                                                         left_index=True, right_index=True, how='left')
+    cell_fate_prob_df = cytopath_data_.reset_index().pivot(index='Cell', columns=['End point', 'Trajectory'], values='Allignment Score')
+    cell_fate_prob_df.columns = cell_fate_prob_df.columns.to_flat_index()
+    cell_fate_prob = pd.DataFrame(index=np.arange(adata.shape[0])).merge(cell_fate_prob_df, left_index=True, right_index=True, how='left')
     cell_fate_prob = cell_fate_prob.fillna(0).div(cell_fate_prob.sum(axis=1), axis=0)    
     adata.uns['trajectories']['cell_fate_probability'] = cell_fate_prob.T.values
     
