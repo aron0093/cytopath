@@ -13,18 +13,16 @@ setup(
   keywords = ['Trajectory Inference', 'single-cell RNA sequencing', 'RNA velocity'],
   install_requires=[
           'numpy>=1.20.0',
-	  'pandas==1.4.1',
+	        'pandas>=1.4.1',
           'scipy',
           'anndata',
           'scvelo>=0.1.25',
           'joblib',
           'fastdtw',
           'hausdorff',
-          'scikit-learn==0.22.2',
+          'scikit-learn>=1.3.0',
           'tqdm',
-	  'networkit',
-	  'tabulate',
-	  'numba'
+	        'numba'
       ],
   classifiers=[
     'Development Status :: 4 - Beta',
