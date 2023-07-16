@@ -237,7 +237,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
                 end_points = np.asarray(np.where(np.asarray(adata.obs["end_points"]) >= end_point_probability))[0]
                 #TODO
                 '''
-                 # Recluster end points if based on probability
+                # Recluster end points if based on probability
                 end_points_adata = adata[end_points]
                 scvelo.tl.louvain(end_points_adata)
                 adata.obs['updated_'+cluster_key] = adata.obs[cluster_key].astype(str).values
@@ -257,6 +257,9 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     adata.uns['run_info']['end_points'] = end_points
     end_point_clusters = adata.obs[cluster_key][end_points].astype(str).values
     end_clusters_ = np.unique(end_point_clusters)
+
+    if len(end_clusters_)==0:
+        raise ValueError('Terminal cluster set is empty.')
     
     # Adjust simulation parameters based on data
     if auto_adjust:
@@ -286,7 +289,6 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     ratio_obtained = 0
 
     count = 0 # Iterate sampling runs
-    old_step_increment=0
     # Resample samples until the number of trajectories for each end point has been reached.
     while (min(traj_num) < traj_number): # or (ratio_obtained < 0.1)
 
