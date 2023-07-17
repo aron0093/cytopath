@@ -71,7 +71,7 @@ def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
     # Perform clustering using hausdorff distance
     print('Clustering using hausdorff distances')
 
-    hdb = HDBSCAN(min_cluster_size=max(2,int(len(all_chains)*0.01)), metric='precomputed', n_jobs=num_cores, allow_single_cluster=True)
+    hdb = HDBSCAN(min_cluster_size=max(2, int(len(all_chains)*0.01)), metric='precomputed', n_jobs=num_cores, allow_single_cluster=True)
     cluster_labels = hdb.fit_predict(distances)
     clusters = np.unique(cluster_labels)
 
@@ -123,7 +123,7 @@ def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
 
     return cluster_chains, cluster_strength, cluster_labels
     
-def sample_clustering(adata, basis="umap", cluster_num=None, distance='euclidean',  num_cores=1):
+def sample_clustering(adata, basis="umap", cluster_num=None, distance='euclidean', num_cores=1):
     """Clusters samples for each terminal region and estimates trajectories.
     
     Arguments
@@ -180,8 +180,11 @@ def sample_clustering(adata, basis="umap", cluster_num=None, distance='euclidean
                                                                                         distance=distance, num_cores=num_cores)
                 print("Sample clustering done. Aligning clusters for end point " + str(end_clusters[i]))
 
-            final_trajectories.append(np.array(final_trajectory))
-            final_cluster_count.append(np.array(final_cluster_strength))      
+            # Discard trajectories that contain less than 10 % of all samples
+            indexes = np.where(final_cluster_strength>(0.1*np.sum(final_cluster_strength)))[0]
+
+            final_trajectories.append(np.array(final_trajectory)[indexes])
+            final_cluster_count.append(np.array(final_cluster_strength)[indexes])   
         
     trajectory_dict = {}
     trajectory_sample_count_dict = {}
