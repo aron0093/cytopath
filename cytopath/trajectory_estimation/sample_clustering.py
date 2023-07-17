@@ -71,7 +71,9 @@ def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
     # Perform clustering using hausdorff distance
     print('Clustering using hausdorff distances')
 
-    hdb = HDBSCAN(min_cluster_size=max(2, int(len(all_chains)*0.01)), metric='precomputed', n_jobs=num_cores, allow_single_cluster=True)
+    hdb = HDBSCAN(min_cluster_size=max(2, int(len(all_chains)*0.01)), 
+                  metric='precomputed', n_jobs=num_cores, 
+                  allow_single_cluster=True)
     cluster_labels = hdb.fit_predict(distances)
     clusters = np.unique(cluster_labels)
 
