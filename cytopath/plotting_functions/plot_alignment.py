@@ -70,8 +70,10 @@ def pl_cytopath_alignment(adata, basis="umap", smoothing=False, figsize=(15,4), 
             ax2.set_ylabel(basis.upper()+' 2')
             ax2.set_xlabel(basis.upper()+' 1')
 
-            ax2.set_title('End point: {} {} Support: {}'.format(end_point_cluster, i, 
-                                                                adata.uns['run_info']['trajectories_sample_counts'][end_point_cluster][i]))
+            ax2.set_title('End point: {}-{} Support: {}/{}'.format(end_point_cluster, i, 
+                                                                adata.uns['run_info']['trajectories_sample_counts'][end_point_cluster][i],
+                                                                int(adata.uns['samples']['cell_sequences'].shape[0]/\
+                                                                adata.uns['run_info']['end_point_clusters'].shape[0])))
 
             # Plot alignment score
             sc_score = ax3.scatter(map_state[:,0], map_state[:,1], alpha=0.6, s=size, color="whitesmoke")
