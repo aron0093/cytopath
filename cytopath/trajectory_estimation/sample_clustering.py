@@ -125,7 +125,7 @@ def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
 
     return cluster_chains, cluster_strength, cluster_labels
     
-def sample_clustering(adata, basis="umap", cluster_num=None, distance='euclidean', num_cores=1):
+def sample_clustering(adata, basis="umap", cluster_num=None, support=0.25, distance='euclidean', num_cores=1):
     """Clusters samples for each terminal region and estimates trajectories.
     
     Arguments
@@ -137,6 +137,8 @@ def sample_clustering(adata, basis="umap", cluster_num=None, distance='euclidean
         If list, imputed expression from supplied genes is used.
     cluster_num:  list (default:None)
         Number of trajectories (clusters) to be expected for each terminal region.
+    support: float(default:0.25)
+        Minimum ratio of samples that must support a trajectory
     distance: str (default:'cosine'):
         Which distabce metric to use (see py-hausdorff for details)
     num_cores: 'integer' (default:1)
@@ -182,8 +184,10 @@ def sample_clustering(adata, basis="umap", cluster_num=None, distance='euclidean
                                                                                         distance=distance, num_cores=num_cores)
                 print("Sample clustering done. Aligning clusters for end point " + str(end_clusters[i]))
 
-            # Discard trajectories that contain less than 10 % of all samples
-            indexes = np.where(final_cluster_strength>(0.1*np.sum(final_cluster_strength)))[0]
+            # Discard trajectories that contain less than 20 % of all samples (traj_num)
+            traj_num=adata.uns['samples']['cell_sequences'].shape[0]/adata.uns['run_info']['end_point_clusters'].shape[0]
+
+            indexes = np.where(np.array(final_cluster_strength)>(support*traj_num))[0]
 
             final_trajectories.append(np.array(final_trajectory)[indexes])
             final_cluster_count.append(np.array(final_cluster_strength)[indexes])   

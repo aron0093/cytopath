@@ -2,8 +2,9 @@ from .trajectory_estimation.sample_clustering import sample_clustering
 from .trajectory_estimation.cyto_path import cytopath, estimate_cell_data
 from .trajectory_estimation.cytopath_merger import cytopath_merger
 
-def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster='auto', cluster_freq=0.05,
-                 groupby='mean', weighted=True, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=None, method = 'kmeans', distance='euclidean', num_cores=1, copy=False):
+def trajectories(data, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster='auto', 
+                 cluster_freq=0.05, groupby='mean', weighted=True, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=None, 
+                 support=0.25, distance='euclidean', num_cores=1, copy=False):
 
     """Trajectory inference using simulations on the transition proabability matrix.
     
@@ -11,8 +12,6 @@ def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neig
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
-    smoothing: Boolean (default:False)
-        Whether or not to smooth over the trajectories.
     alignment_cutoff: float (default:0.0)
         Minimum alignment score to consider a cell-step alignment valid
     basis: str/list (default: umap)
@@ -35,8 +34,8 @@ def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neig
         Number of neighbors to searched along the average trajectory.
     cluster_num:  list (default:None)
         Number of trajectories (clusters) to be expected for each terminal region.
-    method: str (default:'kmeans'):
-        Which clustering method to use.
+    support: float(default:0.25)
+        Minimum ratio of samples that must support a trajectory
     distance: str (default:'cosine'):
         Which distabce metric to use (see py-hausdorff for details)
     num_cores: 'integer' (default:1)
@@ -58,7 +57,7 @@ def trajectories(data, smoothing=False, alignment_cutoff=0.0, basis='umap', neig
 
     # Clustering of cell sequences to obtain trajectories
     sample_clustering(adata, basis=basis, cluster_num=cluster_num, 
-                      distance=distance, num_cores=num_cores)
+                      support=support, distance=distance, num_cores=num_cores)
 
     # Align cells along trajectories
     cytopath(adata, basis=basis, neighbors_basis=neighbors_basis, surrogate_cell=surrogate_cell, fill_cluster=fill_cluster, 
