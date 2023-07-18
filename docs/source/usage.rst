@@ -1,12 +1,12 @@
 Usage
 ====
 
-The entire process of inferring trajectories with Cytopath is divided into two steps. In the first step, a transition probability matrix is used to simulate possible differentiation paths. In the second step, the simulations are used to infer trajectories from root states to each terminal region (cluster containing terminal states).  
+The entire process of inferring trajectories with Cytopath is divided into two steps. In the first step, a transition probability matrix is used to simulate possible differentiation paths. In the second step, the simulations are used to estimate trajectories from root states to each terminal region (cluster containing terminal states).  
 
 Pre-processing
 --------------
 
-We assume that the user has already performed `velocity analysis <https://scvelo.readthedocs.io/>`_ at this point has the processed anndata object is in memory. Following is an example of an anndata processed with scvelo.
+We assume that the user has already performed `velocity analysis <https://scvelo.readthedocs.io/>`_ at this point and has the processed anndata object in memory. Following is an example of an anndata processed with scvelo.
 
 .. code-block:: console
 
@@ -28,11 +28,11 @@ Store the transition probability matrix,
 Markov chain sampling
 ---------------------
 
-The sampling procedure requires a transition probability matrix (parameter: matrix_key), a clustering that will be used to define terminal regions (parameter: cluster_key) and root/terminal state probabilities (stored under root_cells and end_points obs keys). If a clustering is not specified then a louvain is used by default. 
+The sampling procedure requires a transition probability matrix (parameter: matrix_key), a clustering that will be used to define terminal regions (parameter: cluster_key) and root/terminal state probabilities (stored under root_cells and end_points obs keys). If a clustering is not specified then Louvain is used by default. 
 
-The auto_adjust parameter will automatically and dynamically select values for technical parameters of the sampling process based on the properties of the dataset. We advise keeping this parameter to True.
+The auto_adjust parameter will automatically and dynamically select values for technical parameters of the sampling process based on the properties of the dataset. We advise keeping this parameter set to True.
 
-Additionally, set the number of vCPUs (parameter: num_cores) for significanlty faster performance. If you wish to return a copy of the anndata object then set copy parameter to True.
+Additionally, set the number of vCPUs (parameter: num_cores) for significantly faster performance. If you wish to return a copy of the anndata object then set copy parameter to True.
 
 .. code-block:: console
   
@@ -52,7 +52,7 @@ If the user wishes to manually specify root and terminal cell states, then use t
    cytopath.sampling(adata, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', 
                      end_points=end_points, root_cells=root_cells, num_cores=os.cpu_count()-1, copy=False)
    
-Finally, entire clusters can be designated as root or terminal regions as a means of incorporating biological know-how not reflected in velocity based selection of root/terminal states
+Finally, entire clusters can be designated as root or terminal regions as a means of incorporating biological know-how not reflected in velocity-based selection of root/terminal states
 
 .. code-block:: console
 
@@ -82,7 +82,7 @@ Plotting
 Inference output
 ----------------
 
-The trajectories inferred by Cytopath are segmented. Cells are then aligned to these trajectory segments to determine their relative position along the trajectory (pseudotime) and relative association with multiple trajectories (cell fate). 
+The trajectories inferred by Cytopath are composed of segments. Cells are aligned to these trajectory segments to determine their relative position along the trajectory (pseudotime) and relative association with multiple trajectories (cell-fate). 
 
 The complete inference output containing all cell-trajectory alignments is stored under the following key,
 
