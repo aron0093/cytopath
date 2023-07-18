@@ -87,7 +87,7 @@ def iterate_state_probability(adata, matrix_key='T_forward', init=None, stationa
     return state_history, state_history_max_iter, convergence_check
 
 def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=50, sim_number=500,
-             end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=3, 
+             end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=2, 
              max_iter=200, tol=1e-3, normalize=False, unique=True, num_cores=1, copy=False):
     
     """Markov sampling of cell sequences starting from defined root cells to defined terminal regions based on a cell-cell transition probability matrix.
@@ -123,7 +123,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         Cluster IDs to be considered end points. Precendence over end_point_probability.
     root_clusters: `list` (default: None)
         Cluster IDs to be considered root states. Precendence over root_state_probability.
-    min_clusters: `integer` (default:3)
+    min_clusters: `integer` (default:2)
         Minium number of clusters covered by each simulation. (cluster_key)
     max_iter: `integer` (default: 200)
         Maximum simulation iterations to test to auto-select max_steps.
