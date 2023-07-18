@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from matplotlib import pyplot as plt
+from matplotlib import patches as mpatches
 import matplotlib.cm as mc
 
 # Make hexadecimal color per value
@@ -43,7 +44,7 @@ def make_radial_heatmap(ax, values, num_blocks, num_rings, ring_size, empty_size
 def radial_heatmap(adata, var_names, end_points=None, trajectories=None, sortby='alignment', layer='Ms', 
                    col_color_key=None, col_colors=['Blues', 'Reds', 'Greens', 'Oranges','Purples'], 
                    color_map='viridis', n_convolve=10, standard_scale=True, mode='cut',
-                   bins=100, figsize=(10, 10), ax=None, table_ax=None):
+                   bins=100, title=None, title_fontsize=20, figsize=(10, 10), ax=None, table_ax=None):
     
     # Check if data exists
     plotting_data = pd.DataFrame(np.zeros((5,5)), columns=['End point', 'Trajectory', 'Cell', 'Step', 'Allignment Score'])
@@ -140,7 +141,19 @@ def radial_heatmap(adata, var_names, end_points=None, trajectories=None, sortby=
         fig, ax = plt.subplots(figsize=figsize)
     ax = make_radial_heatmap(ax, values, bins, len(values), 8, 10)
     
+    # Set title
+    if title:
+        ax.set_title(title, fontsize=title_fontsize)
+    
+    #     # Make legend
+    #     labels = col_color_categories
+    #     patches=[]
+    #     for color in col_color_values:
+    #         patches.append(mpatches.Patch(color=color[:-1]))
+    #     ax.legend(patches, labels, fontsize='large')
+    
+    # Information on categories, marker ordering (outer to inner)
     if table_ax:
-        pd.plotting.table(ax=table_ax, data=table_text, colLabels=table_text.columns, colWidths=[1/4]*3, fontsize=30)
+        pd.plotting.table(ax=table_ax, data=table_text.values, colLabels=table_text.columns.values, colWidths=[1/4]*3, fontsize=30)
 
     return ax

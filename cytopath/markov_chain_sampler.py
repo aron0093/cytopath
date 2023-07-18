@@ -87,8 +87,8 @@ def iterate_state_probability(adata, matrix_key='T_forward', init=None, stationa
     return state_history, state_history_max_iter, convergence_check
 
 def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=50, sim_number=500,
-                end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=3, tol=1e-3,
-                normalize=False, unique=True, num_cores=1, copy=False):
+             end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=2, 
+             max_iter=200, tol=1e-3, normalize=False, unique=True, num_cores=1, copy=False):
     
     """Markov sampling of cell sequences starting from defined root cells to defined terminal regions based on a cell-cell transition probability matrix.
     Arguments
@@ -123,8 +123,10 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         Cluster IDs to be considered end points. Precendence over end_point_probability.
     root_clusters: `list` (default: None)
         Cluster IDs to be considered root states. Precendence over root_state_probability.
-    min_clusters: `integer` (default:3)
+    min_clusters: `integer` (default:2)
         Minium number of clusters covered by each simulation. (cluster_key)
+    max_iter: `integer` (default: 200)
+        Maximum simulation iterations to test to auto-select max_steps.
     tol: `float` (default:1e-3)
         Convergence criteria for Markov sampling.
     normalize: 'Boolean' (default: False)
@@ -235,7 +237,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
                 end_points = np.asarray(np.where(np.asarray(adata.obs["end_points"]) >= end_point_probability))[0]
                 #TODO
                 '''
-                 # Recluster end points if based on probability
+                # Recluster end points if based on probability
                 end_points_adata = adata[end_points]
                 scvelo.tl.louvain(end_points_adata)
                 adata.obs['updated_'+cluster_key] = adata.obs[cluster_key].astype(str).values
@@ -255,6 +257,9 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     adata.uns['run_info']['end_points'] = end_points
     end_point_clusters = adata.obs[cluster_key][end_points].astype(str).values
     end_clusters_ = np.unique(end_point_clusters)
+
+    if len(end_clusters_)==0:
+        raise ValueError('Terminal cluster set is empty.')
     
     # Adjust simulation parameters based on data
     if auto_adjust:
@@ -270,7 +275,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         max_steps = iterate_state_probability(adata, matrix_key=matrix_key, 
                                               init = (adata.obs['root_cells']/adata.obs['root_cells'].sum()).values, 
                                               stationary=(adata.obs['end_points']/adata.obs['end_points'].sum()).values, 
-                                              max_iter=200, tol=tol)[-1]
+                                              max_iter=max_iter, tol=tol)[-1]
         print('Number of initial simulation steps (max_steps) set to {}'.format(max_steps)) 
 
     # Initialize all empty lists
@@ -284,7 +289,6 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
     ratio_obtained = 0
 
     count = 0 # Iterate sampling runs
-    old_step_increment=0
     # Resample samples until the number of trajectories for each end point has been reached.
     while (min(traj_num) < traj_number): # or (ratio_obtained < 0.1)
 
@@ -354,7 +358,7 @@ def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'lo
         ratio_min = np.round(min(traj_num)/traj_number, 4)
 
         if count==rounds_limit+1:
-            if (min(traj_num) < min_sim_ratio*traj_number) or (ratio_obtained < 0.1):
+            if (min(traj_num) < min_sim_ratio*traj_number): #or (ratio_obtained < 0.1):
 
                 print('{} % of required simulations obtained for lagging end point {}.'.format(np.round(ratio_min*100, 2),
                                                                                                             end_clusters_[np.argmin(traj_num)]))
