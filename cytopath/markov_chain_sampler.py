@@ -86,7 +86,7 @@ def iterate_state_probability(adata, matrix_key='T_forward', init=None, stationa
     state_history = state_history_max_iter[:convergence_check]
     return state_history, state_history_max_iter, convergence_check
 
-def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=50, sim_number=500,
+def sampling(data, auto_adjust=True, matrix_key = 'T_forward', cluster_key = 'louvain', max_steps=10, min_sim_ratio=0.6, rounds_limit=10, traj_number=200, sim_number=500,
              end_point_probability=0.99, root_cell_probability=0.99, end_points=None, root_cells=None, end_clusters=None, root_clusters=None, min_clusters=2, 
              max_iter=200, tol=1e-3, normalize=False, unique=True, num_cores=1, copy=False):
     

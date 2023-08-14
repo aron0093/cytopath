@@ -4,7 +4,7 @@ from .trajectory_estimation.cytopath_merger import cytopath_merger
 
 def trajectories(data, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca', fill_cluster=True, n_neighbors_cluster='auto', 
                  cluster_freq=0.05, groupby='mean', weighted=True, surrogate_cell=False, n_neighbors_alignment='auto', cluster_num=None, 
-                 support=0.25, distance='euclidean', num_cores=1, copy=False):
+                 support=0.10, distance='euclidean', num_cores=1, copy=False):
 
     """Trajectory inference using simulations on the transition proabability matrix.
     
@@ -34,7 +34,7 @@ def trajectories(data, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca'
         Number of neighbors to searched along the average trajectory.
     cluster_num:  list (default:None)
         Number of trajectories (clusters) to be expected for each terminal region.
-    support: float(default:0.25)
+    support: float(default:0.10)
         Minimum ratio of samples that must support a trajectory
     distance: str (default:'cosine'):
         Which distabce metric to use (see py-hausdorff for details)
@@ -44,9 +44,7 @@ def trajectories(data, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca'
         Create a copy of the anndata object or work inplace.
     Returns
     -------
-    adata.uns["trajectories_2"]: Dictionary of the average trajectories
     adata.uns["trajectories"]: Long format of the average trajectories
-    adata.uns["trajectories_count"]: Number of trajectories contributing to each cluster
     adata.uns['trajectories']["cells_along_trajectories"]: List of arrays, which denote the average step for cell.
     adata.uns['trajectories']["cells_along_trajectories_each_step"]: List of arrays containing the cell indexes for each step
     """
@@ -56,13 +54,13 @@ def trajectories(data, alignment_cutoff=0.0, basis='umap', neighbors_basis='pca'
     if 'X_pca' not in adata.obsm.keys(): raise ValueError('Compute PCA using cytopath.scvelo.pp.pca')
 
     # Clustering of cell sequences to obtain trajectories
-    sample_clustering(adata, basis=basis, cluster_num=cluster_num, 
+    sample_clustering(adata, neighbors_basis=neighbors_basis, basis=basis, cluster_num=cluster_num, 
                       support=support, distance=distance, num_cores=num_cores)
 
     # Align cells along trajectories
     cytopath(adata, basis=basis, neighbors_basis=neighbors_basis, surrogate_cell=surrogate_cell, fill_cluster=fill_cluster, 
-             cluster_freq=cluster_freq, n_neighbors_cluster=n_neighbors_cluster,
-             n_neighbors=n_neighbors_alignment, cut_off=alignment_cutoff, num_cores=num_cores)
+             cluster_freq=cluster_freq, n_neighbors_cluster=n_neighbors_cluster, n_neighbors=n_neighbors_alignment, cut_off=alignment_cutoff, 
+             num_cores=num_cores)
     
     # Estimate pseudotime, cell fate prob and alignment score at cell level
     estimate_cell_data(adata, groupby=groupby, weighted=weighted)
