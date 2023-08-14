@@ -9,8 +9,8 @@ from tqdm.auto import tqdm
 
 from ..utils import cosine_similarity
 
-def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster=True, n_neighbors=30, 
-                                       cluster_freq=0.05, mode='distances', recurse_neighbors=True):
+def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster=True, 
+                                       n_neighbors=30, mode='distances', recurse_neighbors=True):
     """Finds surrogate cell and uses the scvelo neighborhood graph to finds its recursive neighbors. 
        Applicable when mean is used to compute trajectory coordinates. Default is median.
     
@@ -24,7 +24,10 @@ def surrogate_cell_neighborhood_finder(adata, end_point, map_state, fill_cluster
         Coordinates of cells in selected basis.
     n_neighbors: `integer`(default: 30)
         Number of neighbors to consider
-
+    mode: distances or connectivities
+        Search neighbors based on distance or connectivity.
+    recurse_neighbors:
+        Search neighbors recursively.
     Returns
     -------
     Returns list of arrays containing the sequence of neighborhoods along the trajectory and the sequence of surrogate cells.
@@ -61,8 +64,12 @@ def cell_neighborhood_finder(adata, map_state, end_point, neighbors_basis='pca',
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
+    map_state: matrix
+        Coordinates of cells in selected basis.
     end_point: `string`
         End point cluster to which the trajectories belong
+    neighbors_basis: `string` (default: pca)
+        The space in which the distances and neighbors are computed.
     fill_cluster: Boolean (default:True)
         Enforce only cells in compostional clusters are assigned score.
     n_neighbors_cluster: `integer` (Default:'auto')
@@ -155,13 +162,14 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
+    neighborhood_sequence: 
+        List of the cells along the trajectory.
     end_point: `string`
         End point cluster to which the trajectories belong
     map_state: matrix
         Coordinates of cells in selected basis.
-    neighborhood_sequence: 
-        List of the cells along the trajectory.
-        
+    num_cores: 'integer' (default:1)
+        Number of cpu cores to use.        
     Returns
     -------
     Returns list of arrays containing the scores of all cells at each step.
@@ -241,8 +249,6 @@ def cutoff_score(adata, end_point, neighborhood_sequence, all_scores, cut_off=0.
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
-    map_state: matrix 
-        Which projection to use for the data.
     end_point: `integer`
         End point cluster to which the trajectories belong.
     neighborhood_sequence: 
@@ -270,6 +276,8 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
+    neighbors_basis: str/list (default: pca)
+        The space in which the distances and neighbors are computed. If None expression is used. 
     basis: `str/list` (default: umap)
         The space in which the neighboring cells should be searched. If None imputed expression is used. 
         If list, imputed expression from supplied genes is used.
@@ -285,6 +293,8 @@ def cytopath(adata, basis="umap", neighbors_basis='pca', surrogate_cell=False, f
         Number of neighbors to searched along the average trajectory.
     cut_off: `float` (default:0.0)
         Cuttof for the directionality score along the average trajectory for the cells.
+    num_cores: 'integer' (default:1)
+        Number of cpu cores to use.
     Returns
     -------
     Returns adata.uns['trajectories']["cells_along_trajectories"]: List of arrays, which denote the average step for cell.

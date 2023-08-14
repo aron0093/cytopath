@@ -54,9 +54,9 @@ def coordinate_assigner(adata, all_seq_cluster, basis="umap"):
 
     return all_chains
 
-# First of two stage clustering of markov chains 
-def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
+def distance_matrix(sequence_coordinates, distance='euclidean', num_cores=1):
 
+    # Not neccessarily same as coords for DTW
     all_chains=sequence_coordinates
 
     # Calculate hausdorff distance
@@ -67,10 +67,16 @@ def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
             haus = hausdorff_distance(all_chains[j+i], all_chains[i], distance=distance)
             distances[i,j+i] = haus
             distances[j+i,i] = haus   
+    
+    return distances
+
+# First of two stage clustering of markov chains 
+def clustering(sequence_coordinates, distances, num_cores=1):
+
+    all_chains=sequence_coordinates
 
     # Perform clustering using hausdorff distance
     print('Clustering using hausdorff distances')
-
     hdb = HDBSCAN(min_cluster_size=max(2, int(len(all_chains)*0.01)), 
                   metric='precomputed', n_jobs=num_cores, 
                   allow_single_cluster=True)
@@ -125,19 +131,22 @@ def clustering(sequence_coordinates, distance='euclidean', num_cores=1):
 
     return cluster_chains, cluster_strength, cluster_labels
     
-def sample_clustering(adata, basis="umap", cluster_num=None, support=0.25, distance='euclidean', num_cores=1):
+def sample_clustering(adata, neighbors_basis='pca', basis="umap", cluster_num=None, 
+                      support=0.10, distance='euclidean', num_cores=1):
     """Clusters samples for each terminal region and estimates trajectories.
     
     Arguments
     ---------
     adata: :class:`~anndata.AnnData`
         Annotated data matrix with end points.
-    basis: str/list (default: umap)
-        The space in which the neighboring cells should be searched. If None imputed expression is used. 
+    neighbors_basis: str/list (default: pca)
+        The space in which the distances and neighbors are computed. If None expression is used. 
         If list, imputed expression from supplied genes is used.
+    basis: str (default: umap)
+        The space in which DTW is performed. Use for projection.
     cluster_num:  list (default:None)
         Number of trajectories (clusters) to be expected for each terminal region.
-    support: float(default:0.25)
+    support: float(default:0.10)
         Minimum ratio of samples that must support a trajectory
     distance: str (default:'cosine'):
         Which distabce metric to use (see py-hausdorff for details)
@@ -145,9 +154,7 @@ def sample_clustering(adata, basis="umap", cluster_num=None, support=0.25, dista
         Number of cpu cores to use.
     Returns
     -------
-    adata.uns["trajectories_2"]: Dictionary of the average trajectories
-    adata.uns["trajectories"]: Long format of the average trajectories
-    adata.uns["trajectories_count"]: Number of trajectories contributing to each cluster
+    adata.uns["trajectories"]: Creates and updates dictionary with Markov chains.
     """
     
     # Check if samples has been run and information is complete
@@ -156,13 +163,15 @@ def sample_clustering(adata, basis="umap", cluster_num=None, support=0.25, dista
     except:
         raise ValueError("Run cytopath.sampling before trajectory inference.")
 
-    if basis is None:
+    if neighbors_basis is None:
         adata.uns['run_info']['trajectory_basis'] = str(adata.X.shape[1]) + 'D_expression'
-    elif type(basis) == list:
-        adata.uns['run_info']['trajectory_basis'] = str(len(basis)) + 'D_custom_geneset_expression'
-        adata.uns['run_info']['trajectory_basis_geneset'] = basis
+    elif type(neighbors_basis) == list:
+        adata.uns['run_info']['trajectory_basis'] = str(len(neighbors_basis)) + 'D_custom_geneset_expression'
+        adata.uns['run_info']['trajectory_basis_geneset'] = neighbors_basis
     else:
-        adata.uns['run_info']['trajectory_basis'] = str(adata.obsm['X_'+basis].shape[1]) + 'D_'+ basis
+        adata.uns['run_info']['trajectory_basis'] = str(adata.obsm['X_'+neighbors_basis].shape[1]) + 'D_'+ neighbors_basis
+
+    adata.uns['run_info']['projection_basis'] = basis
         
     end_clusters, sel_end_clusters, end_points = end_point_cluster(adata)
     adata.uns['run_info']['end_point_clusters'] = end_clusters
@@ -172,7 +181,12 @@ def sample_clustering(adata, basis="umap", cluster_num=None, support=0.25, dista
     for i in range(len(end_clusters)):
         trajectories = end_point_trajectories(adata, end_clusters, sel_end_clusters, end_points, cluster=i)
         if trajectories.shape[0] > 0:
-            sequence_coordinates = coordinate_assigner(adata, trajectories, basis=basis)  
+            # Compute coordinates for DTW alignment
+            sequence_coordinates = coordinate_assigner(adata, trajectories, basis=basis)
+
+            # Compute distances between simulations for clustering
+            sequence_coordinates_distance = coordinate_assigner(adata, trajectories, basis=neighbors_basis)
+            distances=distance_matrix(sequence_coordinates_distance, distance=distance, num_cores=num_cores)
 
             if cluster_num is not None:
                 # TODO: Allow different number of trajectories per terminal region
@@ -181,7 +195,7 @@ def sample_clustering(adata, basis="umap", cluster_num=None, support=0.25, dista
             elif cluster_num is None:
 
                 final_trajectory, final_cluster_strength, cluster_labels = clustering(sequence_coordinates=sequence_coordinates,
-                                                                                        distance=distance, num_cores=num_cores)
+                                                                                      distances=distances, num_cores=num_cores)
                 print("Sample clustering done. Aligning clusters for end point " + str(end_clusters[i]))
 
             # Discard trajectories that contain less than 20 % of all samples (traj_num)

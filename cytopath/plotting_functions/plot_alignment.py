@@ -85,10 +85,10 @@ def pl_cytopath_alignment(adata, basis="umap", smoothing=False, figsize=(15,4), 
             ax3.set_xlabel(basis.upper()+' 1')
 
             # Plot trajectory
-            if basis in adata.uns['run_info']['trajectory_basis']:
+            if basis in adata.uns['run_info']['projection_basis']:
                 coords = np.array(adata.uns['trajectories']['trajectories_coordinates'][end_point_cluster]['trajectory_'+str(i)+'_coordinates'])
 
-            elif ('pca' in adata.uns['run_info']['trajectory_basis']) and (basis != 'pca'):
+            elif ('pca' in adata.uns['run_info']['projection_basis']) and (basis != 'pca'):
                 coords_ = np.array(adata.uns['trajectories']['trajectories_coordinates'][end_point_cluster]['trajectory_'+str(i)+'_coordinates'])
 
                 cell_sequences=[]
