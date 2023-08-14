@@ -199,7 +199,7 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 difference= end_cells - origin_cell#origin_cell-end_cells
 
                 # Score based on alignment and distance 
-                score[k]=np.average(cosine_similarity(avg_difference,difference)*np.exp(neighborhood_transitions[k,:].data))
+                score[k]=np.average(cosine_similarity(avg_difference,difference)*np.expm1(neighborhood_transitions[k,:].data))
 
         elif j!=(len(neighborhood_sequence[i])-1) and j!=0: 
             avg_difference_forward=final_cluster['trajectory_{}_coordinates'.format(i)][j+1]-final_cluster['trajectory_{}_coordinates'.format(i)][j]
@@ -213,8 +213,8 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 difference=end_cells - origin_cell
 
                 # Score based on alignment and distance 
-                score_forward=np.average(cosine_similarity(avg_difference_forward, difference)*np.exp(neighborhood_transitions[k,:].data))
-                score_backward=np.average(cosine_similarity(avg_difference_backward, difference)*np.exp(neighborhood_transitions[k,:].data))
+                score_forward=np.average(cosine_similarity(avg_difference_forward, difference)*np.expm1(neighborhood_transitions[k,:].data))
+                score_backward=np.average(cosine_similarity(avg_difference_backward, difference)*np.expm1(neighborhood_transitions[k,:].data))
                 
                 score[k]=max(score_forward, score_backward)
 
@@ -229,7 +229,7 @@ def directionality_score(adata, neighborhood_sequence, end_point, map_state, num
                 difference=end_cells - origin_cell
 
                 # Score based on alignment and distance  
-                score_backward=np.average(cosine_similarity(avg_difference_backward, difference)*np.exp(neighborhood_transitions[k,:].data))
+                score_backward=np.average(cosine_similarity(avg_difference_backward, difference)*np.expm1(neighborhood_transitions[k,:].data))
                 score[k]=score_backward
 
         return (j, score)
