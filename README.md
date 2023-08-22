@@ -1,4 +1,4 @@
-![PyPI](https://img.shields.io/pypi/v/cytopath?color=informational) [![Downloads](https://pepy.tech/badge/cytopath)](https://pepy.tech/project/cytopath) [![Documentation Status](https://readthedocs.org/projects/cytopath/badge/?version=latest)](https://cytopath.readthedocs.io/en/latest/?badge=latest)
+![PyPI](https://img.shields.io/pypi/v/cytopath?color=informational) [![Downloads](https://static.pepy.tech/badge/cytopath)](https://pepy.tech/project/cytopath) [![Documentation Status](https://readthedocs.org/projects/cytopath/badge/?version=latest)](https://cytopath.readthedocs.io/en/latest/?badge=latest)
 
 ## Cytopath
 Cytopath is a method for trajectory inference with single-cell RNA sequencing data. Transcriptional activity information from RNA velocity of single cells is used to define a Markov chain model; simulation of this model yields an ensemble of possible differentiation trajectories that are used to estimate the lineage path.
@@ -14,7 +14,7 @@ Cytopath can model complex behaviours like cycling and convergence as well as co
 
 cytopath depends on *scvelo* to process the data and may require additional dependencies of scvelo to be installed manually. Other dependencies are the following:
 ```
-python==3.9 numpy==1.23.5 scipy pandas>=1.4.1 anndata scvelo>=0.1.25 joblib fastdtw hausdorff scikit-learn>=1.30.0 numba tqdm
+python>=3.8 numpy==1.23.5 scipy pandas>=1.4.1 anndata scvelo>=0.1.25 joblib fastdtw hausdorff scikit-learn>=1.3.0 numba tqdm
 ```
 ## Documentation
 Sample notebooks can be found [here](https://github.com/aron0093/cytopath-notebooks). A step-by-step installation and analysis guide can be found [here](https://cytopath.readthedocs.io/en/latest/).
