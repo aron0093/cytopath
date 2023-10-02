@@ -1,0 +1,8 @@
+[build-system]
+requires = [""]
+build-backend = ""
+
+[project]
+name = "cytopath"
+authors = [{name = "Revant Gupta", email = "revant.gupta.93@gmail.com"}]
+dynamic = ["version", "description"]
